@@ -1,0 +1,1423 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="給初學者的 InSAR 互動圖解：雷達成像、Sentinel-1 掃描、前縮疊置陰影、視線敏感度、干涉圖判讀與地震干涉圖。">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>InSAR 入門圖解</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading spine (max 1080px); each lesson is a lab bench of controls, figures, then live readouts */
+:root{
+  --bg:#EDF1F0; --panel:#FFFFFF; --ink:#15212A; --muted:#566770; --line:#C9D3D2;
+  --accent:#0A7680; --fore:#C06A17; --back:#2C63AD; --flat:#4A8447; --shade:#7F8B90; --bad:#BF352C;
+  --sky:#E2EAEB; --ground:#D9D1BE; --groundline:#7D735C; --chip:#E6EDEC;
+  --f-display:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1618; --panel:#152024; --ink:#E3ECEC; --muted:#93A4A9; --line:#2A3B40;
+  --accent:#43C2CB; --fore:#EB9B4C; --back:#74A0E6; --flat:#83BE7F; --shade:#6E7B80; --bad:#F06C61;
+  --sky:#17272B; --ground:#3B3628; --groundline:#A39673; --chip:#1D2C30; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1618; --panel:#152024; --ink:#E3ECEC; --muted:#93A4A9; --line:#2A3B40;
+  --accent:#43C2CB; --fore:#EB9B4C; --back:#74A0E6; --flat:#83BE7F; --shade:#6E7B80; --bad:#F06C61;
+  --sky:#17272B; --ground:#3B3628; --groundline:#A39673; --chip:#1D2C30; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.75 var(--f-body);padding-inline:16px;padding-block:0 64px}
+.wrap{max-width:1080px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:900;letter-spacing:.02em}
+h2{font-size:clamp(1.4rem,3vw,1.85rem);font-weight:900}
+h3{font-size:1rem;font-weight:700}
+p{margin:0;max-width:66ch}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header{padding-block:40px 8px;display:grid;gap:14px}
+.eyebrow{font:600 .78rem var(--f-mono);letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+.lede{font-size:1.08rem;color:var(--ink)}
+.fringe-box{position:relative;margin-top:10px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+#fringe{display:block;width:100%;height:150px}
+.fringe-cap{font-size:.82rem;color:var(--muted);margin-top:6px}
+section{margin-top:56px;display:grid;gap:18px}
+.sec-head{display:grid;gap:8px}
+.sec-no{font:600 .8rem var(--f-mono);color:var(--muted);letter-spacing:.1em}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;display:grid;gap:16px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:flex-end}
+.ctl{display:grid;gap:2px;min-width:210px;flex:1 1 210px}
+.ctl label{font-size:.88rem;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctl output{font-family:var(--f-mono);color:var(--ink);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font:500 .9rem var(--f-body);background:transparent;color:var(--ink);border:0;padding:6px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--panel)}
+.fig{overflow-x:auto}
+.fig svg{display:block;width:100%;height:auto;min-width:520px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.grid3 .fig svg{min-width:0}
+.pane{display:grid;gap:6px;min-width:0}
+.pane h3{font-size:.92rem;color:var(--muted);font-weight:500}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:grid;gap:4px;align-content:start;min-width:0}
+.card .k{font-size:.85rem;color:var(--muted)}
+.card .v{font:600 1.5rem var(--f-mono);font-variant-numeric:tabular-nums;line-height:1.2}
+.card .n{font-size:.85rem;color:var(--muted)}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+.chip{display:inline-block;font-size:.8rem;font-weight:700;padding:1px 9px;border-radius:999px;background:var(--chip);width:max-content}
+.chip.ok{color:var(--flat)} .chip.warn{color:var(--fore)} .chip.bad{color:var(--bad)} .chip.mute{color:var(--shade)} .chip.good{color:var(--accent)}
+.defs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;font-size:.92rem}
+.defs div{border-top:2px solid var(--line);padding-top:8px;min-width:0}
+.defs b{display:block}
+.note{font-size:.9rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;min-width:600px;font-size:.95rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.82rem;color:var(--muted);font-weight:500}
+td .mono{font-weight:600}
+.tbl{overflow-x:auto}
+.quote{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:10px}
+.quote p{font-size:1.05rem}
+.btn{font:500 .88rem var(--f-body);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:5px 12px;cursor:pointer;width:max-content}
+.toc{display:flex;flex-wrap:wrap;gap:8px 10px;margin-top:6px}
+.toc a{font-size:.9rem;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 12px 3px 4px;display:inline-flex;gap:8px;align-items:center;background:var(--panel)}
+.toc a:hover{border-color:var(--accent)}
+.toc span{font:600 .75rem var(--f-mono);color:var(--accent);background:var(--chip);border-radius:999px;padding:1px 7px}
+details{border-bottom:1px solid var(--line);padding:12px 0}
+details summary{cursor:pointer;font-weight:700;list-style-position:outside}
+details p{margin-top:8px}
+details a{color:var(--accent)}
+.split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.split{grid-template-columns:minmax(0,1fr)}}
+.verdict{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.verdict > div{border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:6px;min-width:0}
+svg text{font-family:var(--f-body)}
+.t{fill:var(--ink);font-size:12px}.tm{fill:var(--muted);font-size:11px}.tb{font-weight:700}
+.mn{font-family:var(--f-mono)!important}
+@media (max-width:760px){
+  .grid3,.cards,.defs,.verdict{grid-template-columns:minmax(0,1fr)}
+  .grid3 .fig svg{max-width:340px;margin:0 auto}
+}
+@media (prefers-reduced-motion:no-preference){.seg button{transition:background .15s}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">InSAR for beginners</div>
+  <h1>InSAR 入門圖解</h1>
+  <p class="lede">雷達衛星只量一件事：地面到衛星的距離變了多少。這一頁從「雷達怎麼拍照」開始，一步步走到「哪些坡測得到、哪些坡測不到」。每一節都可以拖動參數或按播放，照順序看最容易懂。</p>
+  <nav class="toc" aria-label="目錄">
+    <a href="#radar"><span>01</span>雷達怎麼拍照</a>
+    <a href="#scan"><span>02</span>Sentinel-1 掃過台灣</a>
+    <a href="#range"><span>03</span>等斜距線與像元</a>
+    <a href="#geometry"><span>04</span>前縮、疊置、陰影</a>
+    <a href="#compose"><span>05</span>從剖面到影像</a>
+    <a href="#los"><span>06</span>視線敏感度</a>
+    <a href="#fringes"><span>07</span>干涉圖怎麼看</a>
+    <a href="#verdict"><span>08</span>迎視坡為何不敏感</a>
+    <a href="#amp"><span>09</span>振幅影像怎麼看</a>
+    <a href="#quake"><span>10</span>地震後的干涉圖</a>
+    <a href="#faq"><span>11</span>常見問題</a>
+  </nav>
+  <div>
+    <div class="fringe-box"><canvas id="fringe" aria-label="示意干涉圖"></canvas></div>
+    <div class="fringe-cap">示意干涉圖。每一圈完整色環代表視線方向約 2.8 公分的距離變化（C 波段波長的一半），怎麼判讀見 <a href="#fringes" style="color:var(--accent)">07 節</a>。</div>
+  </div>
+</header>
+
+<!-- ===== R ===== -->
+<section id="radar">
+  <div class="sec-head">
+    <div class="sec-no">01 / 雷達怎麼拍照</div>
+    <h2>光學衛星靠方向排位置，雷達衛星靠回音時間</h2>
+    <p>光學衛星就是照相機，靠太陽光，鏡頭把不同方向來的光送到不同格子，所以影像位置由「方向」決定。雷達衛星沒有鏡頭可以分辨方向。它自己發出微波脈衝，往側邊斜斜打下去，再用極準的碼錶記錄回音。近的地點回音先到、遠的後到，影像位置由「回音時間」也就是距離決定。按下按鈕看兩者的差別。</p>
+  </div>
+  <div class="bench">
+    <div class="controls" style="align-items:center"><button class="btn" id="fire" type="button">▶ 拍一張看看</button><span class="note">右邊看橘色回音飛回衛星的先後順序，B（山腳）和 C（山頂）幾乎同時抵達</span></div>
+    <div class="fig"><svg id="svgR" viewBox="0 0 680 400" role="img" aria-label="光學與雷達成像比較動畫"></svg></div>
+    <div class="tbl"><table>
+      <tr><th></th><th>光學衛星</th><th>雷達衛星（如 Sentinel-1）</th></tr>
+      <tr><td>光源</td><td>太陽光</td><td>自己發射微波</td></tr>
+      <tr><td>夜間、雲雨</td><td>無法拍攝</td><td>照常拍攝，可穿透雲層</td></tr>
+      <tr><td>影像位置依據</td><td>方向</td><td>回音時間，也就是離衛星多遠</td></tr>
+      <tr><td>觀看方式</td><td>大致往下看</td><td>必須斜著往側邊看</td></tr>
+      <tr><td>幾何失真</td><td>少</td><td>前縮、疊置、陰影</td></tr>
+      <tr><td>能量測的</td><td>地表外觀</td><td>外觀，加上公分到毫米級的距離變化</td></tr>
+    </table></div>
+  </div>
+  <div class="defs">
+    <div><b>為什麼一定要斜看</b>如果往正下方看，左右兩側等距的地點回音同時回來，完全分不出誰是誰。斜看才能保證一側的地點有遠近順序。</div>
+    <div><b>InSAR 怎麼量位移</b>雷達還記錄回音波的「相位」。同一地點隔 6 或 12 天再拍，若地面因下陷等原因遠離衛星 1 公分，回音就多走 2 公分，故相位會跟著改變。比較兩次相位，就量得到距離變化。</div>
+    <div><b>所以只量得到一個方向</b>相位只反映「到衛星的距離」，因此 InSAR 只量得到沿視線方向的位移。這是第 06 節敏感度問題的根源。</div>
+  </div>
+</section>
+
+<!-- ===== S ===== -->
+<section id="scan">
+  <div class="sec-head">
+    <div class="sec-no">02 / Sentinel-1 掃過台灣</div>
+    <h2>一次脈衝照亮一條細長帶子，一條一條拼成影像</h2>
+    <p>Sentinel-1 的天線約 12.3 m 長、0.8 m 高，長邊順著飛行方向。天線越長波束越窄，所以沿飛行方向只照到約 4 km，垂直飛行方向卻能照到約 80 km。一次脈衝照亮的是一條細長帶子，長軸垂直於飛行方向。下面的動畫把時間放慢，左邊是地圖，右邊是同一時間影像正在組成的樣子。</p>
+  </div>
+  <div class="bench">
+    <div class="controls" style="align-items:center">
+      <div class="seg" role="group" aria-label="軌道"><button id="sAsc" type="button">升軌</button><button id="sDesc" type="button">降軌</button></div>
+      <button class="btn" id="splay" type="button">❚❚ 暫停</button>
+      <div class="ctl" style="min-width:180px;flex:0 1 240px"><label for="sspd">播放速度<output id="sspdo"></output></label><input id="sspd" type="range" min="0.25" max="4" step="0.25" value="0.5"></div>
+    </div>
+    <div class="fig"><svg id="svgS" viewBox="0 0 720 470" role="img" aria-label="Sentinel-1 掃描台灣動畫"></svg></div>
+    <div class="cards" id="scards"></div>
+  </div>
+  <div class="defs">
+    <div><b style="color:var(--fore)">脈衝不是一瞬間照亮整條</b>脈衝從近端往遠端掃過帶子，回音依序回來，雷達按時間切成一格一格，就是影像的一列。動畫把這個過程放慢很多倍，橘線由近端長到遠端，右邊影像同一列的格子也依序填滿。所以在台灣，Sentinel-1 影像的斜距方向大致是東西向。</div>
+    <div><b style="color:var(--accent)">同一塊地會被打很多次</b>衛星每秒發射一千多次脈衝，帶子每次只往前移幾公尺。電腦把這些回音合成，等效出一支很長的天線，沿軌解析度才能從 4 km 提升到約 20 m，這就是「合成孔徑」。</div>
+    <div><b>IW 模式會跳著照</b>一個子刈幅只有約 80 km 寬，所以波束在 IW1、IW2、IW3 之間輪流切換，每次照一小段（burst），三段拼成 250 km 的刈幅。動畫裡橘色細線在每個 burst 內由後往前掃，就是這個機制。</div>
+  </div>
+  <div class="bench" style="gap:12px">
+    <div class="split">
+      <div style="display:grid;gap:12px;min-width:0">
+        <h3>一格像素不是一次脈衝</h3>
+    <p class="note" style="color:var(--ink)">一次脈衝的回音由近到遠依序取樣，每約 2.3 m 一格，所以一次脈衝填滿的是影像的「一整列」。沿飛行方向，單一脈衝照得太寬分不清楚，要把衛星飛過時連續數百次脈衝的回音依相位疊加，才把 4 km 壓縮到約 20 m。所以每一格像素背後，是很多次脈衝共同的結果。</p>
+    <p class="note" style="color:var(--ink)">Sentinel-1 IW 原始影像的格點約為斜距 2.3 m × 方位 14 m，投影到地面約 4 m × 14 m。實際能分辨開的大小（解析度）比格點稍大，地面約 5 m × 20 m。InSAR 分析時常再把幾格合併成一格（多視處理），降低雜訊，常見做成約 15 m 到數十公尺的方格。</p>
+        <p class="note">右圖上半部：雷達把回音按「離衛星多遠」切格，兩條等斜距線之間沿視線方向相隔 2.3 m。這兩條線斜斜切過地面，落在地上的間距就被拉長成約 4 m。入射角越小，拉得越長。下半部：每一格都是細長條，沿飛行方向比較長，所以原始 SAR 影像直接打開會像被橫向壓扁。實務上常把斜距方向 4 格併成 1 格，得到約 16 m × 14 m、接近正方形的像素。</p>
+      </div>
+      <div class="pane" style="min-width:0"><svg viewBox="0 0 420 470" role="img" aria-label="斜距格點投影到地面的示意" style="width:100%;height:auto;display:block">
+  <defs><marker id="dimA" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="context-stroke"/></marker></defs>
+  <text class="t tb" x="6" y="16">① 側面看：斜距 2.3 m 落到地面約 4 m</text>
+  <rect x="0" y="28" width="420" height="142" fill="var(--sky)"/>
+  <rect x="0" y="170" width="420" height="16" fill="var(--ground)"/>
+  <line x1="0" y1="170" x2="420" y2="170" stroke="var(--groundline)" stroke-width="2"/>
+  <line x1="90" y1="170" x2="212.9" y2="84.0" stroke="var(--muted)" stroke-dasharray="5 4"/><line x1="210" y1="170" x2="332.9" y2="84.0" stroke="var(--muted)" stroke-dasharray="5 4"/><line x1="330" y1="170" x2="452.9" y2="84.0" stroke="var(--muted)" stroke-dasharray="5 4"/>
+  <line x1="18.3" y1="67.6" x2="87.7" y2="166.7" stroke="var(--accent)" stroke-width="2" marker-end="url(#dimA)"/>
+  <text class="tm" x="22.3" y="61.6" style="fill:var(--accent)">雷達視線</text>
+  <line x1="90" y1="170" x2="90" y2="100" stroke="var(--muted)" stroke-dasharray="2 3"/>
+  <path d="M90,136 A34,34 0 0 0 70.5,142.1" fill="none" stroke="var(--ink)"/>
+  <text class="t" x="78.0" y="130" text-anchor="end">θ≈35°</text>
+  <line x1="196.5" y1="95.4" x2="236.1" y2="152.0" stroke="var(--fore)" stroke-width="2.5" marker-start="url(#dimA)" marker-end="url(#dimA)"/>
+  <rect x="226.5" y="97.7" width="96" height="20" rx="3" fill="var(--panel)"/>
+  <text class="t tb" x="232.5" y="111.7" style="fill:var(--fore)">斜距 2.3 m</text>
+  <line x1="92" y1="198" x2="208" y2="198" stroke="var(--back)" stroke-width="2.5" marker-start="url(#dimA)" marker-end="url(#dimA)"/>
+  <line x1="212" y1="198" x2="328" y2="198" stroke="var(--back)" stroke-width="1.2" opacity=".6" marker-start="url(#dimA)" marker-end="url(#dimA)"/>
+  <text class="t tb" x="150" y="216" text-anchor="middle" style="fill:var(--back)">地面約 4 m</text>
+  <text class="t tb" x="270" y="216" text-anchor="middle" style="fill:var(--back);opacity:.7">約 4 m</text>
+  <text class="tm" x="250" y="44">灰色虛線：等斜距線</text>
+  <text class="tm" x="6" y="236">地面間距 = 斜距間距 ÷ sin θ = 2.3 ÷ sin 35° ≈ 4 m</text>
+  <text class="t tb" x="6" y="264">② 從上往下看：每一格的形狀</text>
+  <text class="tm" x="30" y="284">原始影像（斜距 × 方位）</text>
+  <text class="tm" x="230" y="284">投影到地面</text>
+  <rect x="30" y="292" width="73.6" height="112" fill="var(--chip)" stroke="var(--ink)" stroke-width="1"/><line x1="39.2" y1="292" x2="39.2" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="48.4" y1="292" x2="48.4" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="57.599999999999994" y1="292" x2="57.599999999999994" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="66.8" y1="292" x2="66.8" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="76.0" y1="292" x2="76.0" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="85.19999999999999" y1="292" x2="85.19999999999999" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="94.39999999999999" y1="292" x2="94.39999999999999" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="30" y1="348" x2="103.6" y2="348" stroke="var(--ink)" stroke-width=".6"/><rect x="230" y="292" width="128" height="112" fill="var(--chip)" stroke="var(--ink)" stroke-width="1"/><line x1="246" y1="292" x2="246" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="262" y1="292" x2="262" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="278" y1="292" x2="278" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="294" y1="292" x2="294" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="310" y1="292" x2="310" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="326" y1="292" x2="326" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="342" y1="292" x2="342" y2="404" stroke="var(--ink)" stroke-width=".6"/><line x1="230" y1="348" x2="358" y2="348" stroke="var(--ink)" stroke-width=".6"/>
+  <rect x="230" y="292" width="64" height="56" fill="none" stroke="var(--fore)" stroke-width="2.5"/>
+  <path d="M30,413V423M39.2,413V423M30,418H39.2" fill="none" stroke="var(--fore)" stroke-width="2"/>
+  <text class="tm" x="44" y="422">斜距 2.3 m</text>
+  <path d="M230,413V423M246,413V423M230,418H246" fill="none" stroke="var(--back)" stroke-width="2"/>
+  <text class="tm" x="251" y="422">地面約 4 m</text>
+  <line x1="113.6" y1="348" x2="113.6" y2="404" stroke="var(--ink)" stroke-width="1.5" marker-start="url(#dimA)" marker-end="url(#dimA)"/>
+  <text class="tm" x="119.6" y="380.0">14 m</text>
+  <line x1="368" y1="348" x2="368" y2="404" stroke="var(--ink)" stroke-width="1.5" marker-start="url(#dimA)" marker-end="url(#dimA)"/>
+  <text class="tm" x="374" y="380.0">14 m</text>
+  <line x1="12" y1="404" x2="12" y2="296" stroke="var(--ink)" stroke-width="1.5" marker-end="url(#dimA)"/>
+  <text class="tm" x="6" y="438">↑ 方位（飛行方向）　→ 斜距（往遠端）</text>
+  <text class="tm" x="230" y="438" style="fill:var(--fore)">橘框：4 格合併 ≈ 16 × 14 m</text>
+</svg></div>
+    </div>
+    <h3 style="margin-top:6px">斜距 2.3 m 和方位 14 m 分別從哪裡來</h3>
+    <p class="note" style="color:var(--ink)">2.3 m 不是脈衝的間距，而是同一個脈衝的回音裡，相鄰兩個取樣點的距離差。雷達每秒取樣約 6,400 萬次，相鄰兩點只隔約 15 奈秒（15 × 10⁻⁹ 秒）。光在這段時間走約 4.6 m，回音一來一回要除以 2，就是 2.3 m。脈衝間距對應的是另一個方向，兩次脈衝之間衛星往前飛，照射位置沿飛行方向移動約 4 m。經過聚焦處理後，IW 模式輸出的 SLC 影像在方位方向約每 14 m 一格。</p>
+    <div class="tbl"><table>
+      <tr><th>方向</th><th>由什麼決定</th><th>間距</th></tr>
+      <tr><td>斜距（橫向，一列之內）</td><td>同一回音的取樣間隔，約 15 奈秒<br><span class="mono note">光速 × 15.5 × 10⁻⁹ 秒 ÷ 2 ≈ 2.3 m</span></td><td class="mono">2.3 m</td></tr>
+      <tr><td>方位（縱向，列與列之間）</td><td>脈衝間隔，約 0.6 毫秒</td><td>原始約 4 m，處理後約 14 m</td></tr>
+    </table></div>
+    <h3 style="margin-top:6px">一整列有幾格</h3>
+    <p class="note" style="color:var(--ink)">一列的格數等於子刈幅在斜距方向的長度除以 2.3 m。每個子刈幅在地面約 80 km 寬，雷達斜著看，換成斜距要乘上 sin θ，所以一列約 2 萬到 2.5 萬格。2 萬格乘以每格 15 奈秒（15 × 10⁻⁹ 秒）約 0.3 毫秒，剛好就是一批回音持續的時間。</p>
+    <div class="tbl"><table>
+      <tr><th>子刈幅</th><th>入射角</th><th>地面寬</th><th>斜距長度</th><th>一列約幾格</th></tr>
+      <tr><td>IW1</td><td>約 29–35°</td><td>約 80 km</td><td>約 42 km</td><td class="mono">18,000–20,000</td></tr>
+      <tr><td>IW2</td><td>約 35–41°</td><td>約 80 km</td><td>約 49 km</td><td class="mono">21,000–23,000</td></tr>
+      <tr><td>IW3</td><td>約 41–46°</td><td>約 80 km</td><td>約 55 km</td><td class="mono">約 24,000</td></tr>
+    </table></div>
+    <p class="note" style="color:var(--ink)">一個 burst 約 1,500 列，所以一塊 burst 約 3,000 萬格。一景影像每個子刈幅有 9 到 10 個 burst，三個子刈幅拼起來橫向約 6 萬多格。整景 SLC 有數億個像素，每格都存著振幅和相位，檔案動輒好幾 GB。表中為估算量級，實際列數與格數記錄在影像參數檔。</p>
+    <div class="tbl"><table>
+      <tr><th>時間尺度</th><th>Sentinel-1 IW 約略數值</th><th>對應的是</th></tr>
+      <tr><td>一次脈衝持續</td><td>數十微秒</td><td>一聲「喊叫」</td></tr>
+      <tr><td>脈衝間隔</td><td>每秒約 1,500 次以上，約 0.6 毫秒一次</td><td>原始資料的一列</td></tr>
+      <tr><td>一個 burst</td><td>不到 1 秒，約 2.7 秒輪完 IW1、IW2、IW3</td><td>動畫中的青色方塊</td></tr>
+      <tr><td>一景影像</td><td>約 25 秒，涵蓋約 250 × 170 km</td><td>下載的一個影像檔</td></tr>
+      <tr><td>同一地點再拍一次</td><td>單顆衛星 12 天，雙星 6 天</td><td>InSAR 比較的兩期影像</td></tr>
+    </table></div>
+    <p class="note">最後一列才是 InSAR 在乎的「多久拍一張」。依 ESA 公告，2026 年 6 月底起由 Sentinel-1C 與 1D 組成雙星，同一地點標稱 6 天重訪一次。</p>
+    <h3 style="margin-top:6px">常聽到的「解析度 10 公尺」是哪一種</h3>
+    <p class="note" style="color:var(--ink)">同一份資料會加工成不同產品。10 m 是 GRD 高解析產品的像素間距。GRD 先在斜距方向把 5 格合併成 1 格降低雜訊，解析度因此變成約 20 m，再投影到地面、重新取樣成 10 m 的正方形網格，方便套疊地圖。像素間距比解析度小，稱為過取樣，約 20 m 以內的兩個物體仍然分不開。GRD 只留振幅、丟掉相位，所以不能做 InSAR。</p>
+    <div class="tbl"><table>
+      <tr><th>產品</th><th>用途</th><th>像素間距</th><th>實際解析度</th><th>相位</th></tr>
+      <tr><td>IW SLC</td><td>InSAR</td><td>斜距 2.3 × 方位 14 m（地面約 4 × 14 m）</td><td>地面約 5 × 20 m</td><td><span class="chip ok">有</span></td></tr>
+      <tr><td>IW GRD 高解析</td><td>影像判釋、淹水、變遷</td><td class="mono">10 × 10 m</td><td>約 20 × 22 m</td><td><span class="chip mute">無</span></td></tr>
+      <tr><td>IW GRD 中解析</td><td>大範圍概覽</td><td class="mono">40 × 40 m</td><td>約 88 × 90 m</td><td><span class="chip mute">無</span></td></tr>
+    </table></div>
+    <p class="note">GRD 數值依 <a href="https://sentinel.esa.int/web/sentinel/technical-guides/sentinel-1-sar/products-algorithms/level-1-algorithms/ground-range-detected/iw" style="color:var(--accent)">ESA IW GRD 產品規格</a>。</p>
+  </div>
+  <div class="bench" style="gap:12px">
+    <h3>要等回音回來才發下一個脈衝嗎？</h3>
+    <p class="note" style="color:var(--ink)">不用，也等不起。以刈幅中段的斜距約 850 km 計算，脈衝來回 1,700 km 要 5.7 毫秒（5.7 × 10⁻³ 秒），但每約 0.6 毫秒就發射一次，所以空中同時有約 9 個脈衝在飛。不會搞混的原因是，一個子刈幅從近端到遠端斜距只差約 45 km，每批回音只持續約 0.3 毫秒，剛好落在兩次發射之間的空檔。衛星知道自己離地面多遠，就知道現在收到的是「第幾次之前」那個脈衝的回音。</p>
+    <div class="controls" style="align-items:center">
+      <button class="btn" id="puPlay" type="button">❚❚ 暫停</button>
+      <div class="seg" role="group" aria-label="速度"><button type="button" data-pv="0.5">慢</button><button type="button" data-pv="1">中</button><button type="button" data-pv="2">快</button></div>
+      <div class="ctl" style="min-width:200px"><label for="puT">時間<output id="puTo"></output></label><input id="puT" type="range" min="0" max="7.15" step="0.01" value="0"></div>
+    </div>
+    <div class="fig"><svg id="svgPu" viewBox="0 0 720 372" role="img" aria-label="脈衝發射與回音接收的動畫"></svg></div>
+    <p class="note">動畫把時間放慢約兩千倍。上半部是空間：脈衝從衛星飛向地面（去程），回音再飛回衛星（回程），回音是一段約 45 km 長的波，因為近端先回、遠端後回。下半部是時間軸：每約 0.6 毫秒發射一次，回音抵達衛星的那段時間就是接收窗。</p>
+    <div class="tbl"><table>
+      <tr><th>事件</th><th>時間</th></tr>
+      <tr><td>第 1 次發射</td><td class="mono">0 毫秒</td></tr>
+      <tr><td>第 10 次發射</td><td class="mono">5.4 毫秒</td></tr>
+      <tr><td>第 1 次脈衝的回音抵達（約 0.3 毫秒長）</td><td class="mono">約 5.55 到 5.85 毫秒</td></tr>
+      <tr><td>第 11 次發射</td><td class="mono">6.0 毫秒</td></tr>
+      <tr><td>第 2 次脈衝的回音抵達</td><td><span class="mono">約 6.15 到 6.45 毫秒</span>，落在第 11 與第 12 次之間</td></tr>
+    </table></div>
+    <p class="note" style="color:var(--ink)">每次往後推 0.6 毫秒，第 n 次脈衝的回音固定落在第 n+9 與第 n+10 次發射之間。空中同時有幾個脈衝，雷達術語稱為 rank。0.6 毫秒的空檔裡，雷達只在回音抵達的約 0.3 毫秒「接收窗」取樣，前後留點餘裕避開下一次發射。三個子刈幅的斜距和脈衝頻率不同，間隔的次數可能是 9、10 或 11 個。順序固定，所以衛星不必辨認回音屬於哪一次，處理時照對應關係排列即可。</p>
+    <p class="note" style="color:var(--ink)">這也是 IW 模式要切成三個子刈幅的原因。如果一次照完 250 km，近端到遠端的斜距差將近 200 km，回音拉開超過 1 毫秒，前後兩批就會疊在一起。要避開只能降低發射頻率，但頻率太低，沿飛行方向又取樣不足。切成每段約 80 km，兩邊條件才能同時滿足。</p>
+  </div>
+  <p class="note">地圖為示意。衛星的地面軌跡實際在刈幅近端外約 300 公里，圖中拉近畫出。單一脈衝帶子實際只有約 4 km 寬，圖中略為加粗。數值依據 <a href="https://sentinel.esa.int/web/sentinel/user-guides/sentinel-1-sar/acquisition-modes/interferometric-wide-swath" style="color:var(--accent)">ESA Sentinel-1 IW 模式說明</a>，脈衝帶尺寸由波長與天線尺寸估算。</p>
+</section>
+
+<!-- ===== E ===== -->
+<section id="range">
+  <div class="sec-head">
+    <div class="sec-no">03 / 等斜距線與像元</div>
+    <h2>離衛星一樣遠的點，回音同時回來</h2>
+    <p>把所有「離衛星一樣遠」的點連起來，就是一條等斜距線。它其實是以衛星為圓心的圓弧，半徑就是斜距。Sentinel-1 的軌道高度約 693 公里，但雷達斜著看，到刈幅中段的斜距約 850 公里，近端約 770、遠端約 920 公里。半徑這麼大，落到一座山的尺度就幾乎是一組平行直線，方向和雷達視線垂直。相鄰兩條等斜距線夾住的帶子，就是影像的一格像元。帶子碰到多少地面，那一格就裝多少地面的回音。</p>
+  </div>
+  <div class="bench">
+    <div class="fig"><svg viewBox="0 0 680 400" role="img" aria-label="等斜距線示意">
+      <defs><clipPath id="skyE"><polygon points="0,0 680,0 680,330 520,330 440,230 330,330 0,330"/></clipPath></defs>
+      <rect x="0" y="0" width="680" height="330" fill="var(--sky)"/>
+      <polygon points="0,330 330,330 440,230 520,330 680,330 680,400 0,400" fill="var(--ground)" stroke="var(--groundline)"/>
+      <g clip-path="url(#skyE)">
+        <circle cx="60" cy="50" r="420" fill="var(--accent)" opacity=".2"/>
+        <circle cx="60" cy="50" r="389" fill="var(--sky)"/>
+        <g fill="none" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"><circle cx="60" cy="50" r="300"/><circle cx="60" cy="50" r="330"/><circle cx="60" cy="50" r="360"/><circle cx="60" cy="50" r="450"/><circle cx="60" cy="50" r="480"/><circle cx="60" cy="50" r="510"/><circle cx="60" cy="50" r="540"/><circle cx="60" cy="50" r="570"/></g>
+        <g fill="none" stroke="var(--accent)" stroke-width="2.2"><circle cx="60" cy="50" r="389"/><circle cx="60" cy="50" r="420"/></g>
+      </g>
+      <line x1="330" y1="330" x2="440" y2="230" stroke="var(--fore)" stroke-width="5" stroke-linecap="round"/>
+      <g transform="translate(60,50)"><rect x="-7" y="-5" width="14" height="10" rx="2" fill="var(--ink)"/><rect x="-24" y="-3" width="14" height="6" fill="var(--accent)"/><rect x="10" y="-3" width="14" height="6" fill="var(--accent)"/></g>
+      <text class="t" x="96" y="55">衛星（高度約 693 km，斜距約 770 到 920 km）</text>
+      <text class="t tb" x="96" y="200">兩條青色線之間 = 一格像元</text>
+      <text class="tm" x="96" y="218">Sentinel-1 斜距方向約 2.3 m 一格</text>
+      <text class="t" x="520" y="110">灰色虛線：等斜距線</text>
+      <text class="tm" x="520" y="128">線上每點到衛星一樣遠</text>
+      <text class="t" x="20" y="362">橘色迎視坡的山腳和山頂，剛好落在同一條青色帶子裡。回音同時回來，整段坡擠進一格，這就是前縮。</text>
+      <text class="tm" x="20" y="384">網頁後面的剖面圖，把這些圓弧畫成平行斜線。</text>
+    </svg></div>
+  </div>
+</section>
+
+<!-- ===== 1 ===== -->
+<section id="geometry">
+  <div class="sec-head">
+    <div class="sec-no">04 / 側視幾何</div>
+    <h2>斜著看，影像會被壓扁、翻轉或留白</h2>
+    <p>雷達往側下方斜看，影像的橫軸不是地面距離，而是「斜距」，也就是每個地點離衛星多遠。同一時間回到衛星的訊號會落在同一個像元。圖中的紫灰虛線是通過山頂的等斜距線，線上每一點與衛星距離相同。</p>
+  </div>
+  <div class="bench">
+    <div class="controls">
+      <div class="ctl"><label for="th1">入射角 θ<output id="th1o"></output></label><input id="th1" type="range" min="20" max="50" step="1"></div>
+      <div class="ctl"><label for="fa">迎視坡坡度（面向衛星）<output id="fao"></output></label><input id="fa" type="range" min="8" max="75" step="1"></div>
+      <div class="ctl"><label for="ba">背視坡坡度（背對衛星）<output id="bao"></output></label><input id="ba" type="range" min="8" max="75" step="1"></div>
+    </div>
+    <div class="fig"><svg id="svg1" viewBox="0 0 720 330" role="img" aria-label="雷達側視剖面"></svg></div>
+    <div class="fig"><svg id="svg1b" viewBox="0 0 720 214" role="img" aria-label="地面點在斜距影像中的位置"></svg></div>
+    <div class="cards" id="cards1"></div>
+  </div>
+  <div class="defs">
+    <div><b style="color:var(--fore)">前縮 Foreshortening</b>坡面面向衛星，整段坡被擠進少數像元，坡度越接近入射角擠得越嚴重。</div>
+    <div><b style="color:var(--bad)">疊置 Layover</b>坡度大於入射角，山頂比山腳先回到衛星。影像中順序顛倒，還和前方地物混在同一像元。</div>
+    <div><b style="color:var(--shade)">陰影 Shadow</b>背坡坡度大於 90°−θ，雷達波被山頂擋住，這段地面完全沒有訊號。</div>
+  </div>
+</section>
+
+<!-- ===== 1b ===== -->
+<section id="compose">
+  <div class="sec-head">
+    <div class="sec-no">05 / 從剖面到影像</div>
+    <h2>一格像元，裝的是兩條等斜距線之間的地面</h2>
+    <p>雷達發出脈衝後，回波按「離衛星多遠」依序回來。影像的每一格，就是兩條等斜距線夾住的那一條帶子。帶子碰到多少地面，那一格就裝多少地面的回波。按「播放」看波前由近到遠掃過去，或直接點下方任一格。</p>
+  </div>
+  <div class="bench">
+    <div class="controls">
+      <div class="ctl"><label for="th3">入射角 θ<output id="th3o"></output></label><input id="th3" type="range" min="20" max="50" step="1"></div>
+      <div class="ctl"><label for="fa3">迎視坡坡度<output id="fa3o"></output></label><input id="fa3" type="range" min="8" max="75" step="1"></div>
+      <div class="ctl"><label for="ba3">背視坡坡度<output id="ba3o"></output></label><input id="ba3" type="range" min="8" max="75" step="1"></div>
+    </div>
+    <div class="controls" style="align-items:center">
+      <div class="seg" role="group" aria-label="情境"><button type="button" data-p="fs">一般前縮</button><button type="button" data-p="eq">坡度等於入射角</button><button type="button" data-p="lay">疊置</button><button type="button" data-p="sh">陰影</button></div>
+      <button class="btn" id="play" type="button">▶ 播放</button>
+      <div class="ctl" style="min-width:180px"><label for="scrub">波前位置（近 → 遠）</label><input id="scrub" type="range" min="0" max="1000" step="1" value="1000"></div>
+    </div>
+    <div class="fig"><svg id="svg3" viewBox="0 0 720 290" role="img" aria-label="等斜距帶掃過剖面"></svg></div>
+    <div class="fig"><svg id="svg3b" viewBox="0 0 720 222" role="img" aria-label="每個像元收到的地面量與合成影像" style="cursor:pointer"></svg></div>
+    <div class="card" id="cap3" aria-live="polite"></div>
+  </div>
+  <div class="defs">
+    <div><b style="color:var(--fore)">長條很高、只有橘色</b>迎視坡被壓縮。一格塞進好幾倍的地面，影像很亮，但坡上不同位置分不開。</div>
+    <div><b style="color:var(--bad)">同一格有綠又有橘</b>疊置。山腳前方平地和坡面的回波同時抵達，混在同一格，無法拆開。</div>
+    <div><b style="color:var(--back)">長條很矮、只有藍色</b>背視坡被拉開。每格只分到一小段地面，影像較暗，但位置解析清楚。空格表示陰影，沒有回波。</div>
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section id="los">
+  <div class="sec-head">
+    <div class="sec-no">06 / 視線敏感度</div>
+    <h2>坡滑了 10 mm，衛星能看到幾 mm</h2>
+    <p>InSAR 量到的是位移在視線方向的投影。這裡假設坡面沿最大傾斜方向順坡滑動，位移同時有水平與向下兩個分量。在羅盤上拖動橘色箭頭可以改變坡向。</p>
+  </div>
+  <div class="bench">
+    <div class="controls">
+      <div class="ctl" style="flex:0 0 auto;min-width:0"><label>軌道</label>
+        <div class="seg" role="group" aria-label="軌道"><button id="bAsc" type="button">升軌</button><button id="bDesc" type="button">降軌</button></div></div>
+      <div class="ctl"><label for="asp">坡向（下坡方向）<output id="aspo"></output></label><input id="asp" type="range" min="0" max="359" step="1"></div>
+      <div class="ctl"><label for="slp">坡度 α<output id="slpo"></output></label><input id="slp" type="range" min="5" max="70" step="1"></div>
+      <div class="ctl"><label for="th2">入射角 θ<output id="th2o"></output></label><input id="th2" type="range" min="20" max="50" step="1"></div>
+    </div>
+    <div class="grid3">
+      <div class="pane"><h3>俯視：視線與坡向</h3><div class="fig"><svg id="dial" viewBox="0 0 280 280" role="img" aria-label="羅盤，可拖動設定坡向" style="touch-action:none;cursor:grab"></svg></div></div>
+      <div class="pane"><h3>沿視線的剖面：位移怎麼投影</h3><div class="fig"><svg id="side" viewBox="0 0 300 280" role="img" aria-label="視線方向剖面"></svg></div></div>
+      <div class="pane"><h3>各坡向的敏感度</h3><div class="fig"><svg id="polar" viewBox="0 0 280 280" role="img" aria-label="敏感度極座標圖"></svg></div></div>
+    </div>
+    <div class="cards" id="cards2"></div>
+  </div>
+  <p class="note">升降軌航向以 Sentinel-1 在台灣附近的約略值示意（升軌約 348°、向東看；降軌約 192°、向西看）。實際值請以影像參數檔為準。</p>
+</section>
+
+<!-- ===== F ===== -->
+<section id="fringes">
+  <div class="sec-head">
+    <div class="sec-no">07 / 干涉圖怎麼看</div>
+    <h2>彩虹圈是一把刻度 2.8 公分的尺</h2>
+    <p>干涉圖把兩次拍攝的相位差畫成顏色。相位每繞一圈，顏色就從頭輪一次，代表視線方向的距離變化了半個波長，Sentinel-1 約 2.8 公分。所以彩虹圈很像等高線，只是每一圈代表的不是高度，而是 2.8 公分的位移。下面模擬一處沉陷或滑動，拖動參數看圈數怎麼變，並對照下方剖面。</p>
+  </div>
+  <div class="bench">
+    <h3>相位怎麼變成顏色</h3>
+    <div class="controls" style="align-items:center">
+      <div class="ctl"><label for="phd">地面下陷量 d<output id="phdo"></output></label><input id="phd" type="range" min="0" max="4.2" step="0.05" value="0.7"></div>
+      <button class="btn" id="phplay" type="button">▶ 慢慢下陷</button>
+    </div>
+    <div class="fig"><svg id="svgPh" viewBox="0 0 720 330" role="img" aria-label="相位差與顏色的關係示意"></svg></div>
+    <p class="note" style="color:var(--ink)">回音是一串波，波長 5.6 cm。雷達記錄的「相位」，就是回音抵達天線時，波正好走到一個週期裡的哪個位置，像時鐘指針的角度。地面下陷 d，回音一來一回多走 2d，指針就多轉 2d ÷ 5.6 圈。干涉圖把這個角度差塗成顏色。下陷 2.8 cm 時回音多走 5.6 cm，指針剛好轉一整圈回到原位，顏色也回到起點，所以彩虹圈每一圈代表 2.8 cm。</p>
+  </div>
+  <div class="bench">
+    <div class="controls">
+      <div class="ctl"><label for="fd">中心最大位移<output id="fdo"></output></label><input id="fd" type="range" min="0" max="40" step="0.5"></div>
+      <div class="ctl"><label for="fc">訊號品質（同調性）<output id="fco"></output></label><input id="fc" type="range" min="0" max="100" step="1"></div>
+    </div>
+    <div class="controls" style="align-items:center">
+      <div class="seg" role="group" aria-label="位移方向"><button id="fAway" type="button">遠離衛星</button><button id="fToward" type="button">靠近衛星</button></div>
+      <div class="seg" role="group" aria-label="顯示方式"><button id="fW" type="button">干涉圖（彩虹圈）</button><button id="fU" type="button">解纏後的位移圖</button></div>
+    </div>
+    <div class="split">
+      <div class="pane"><canvas id="fcan" aria-label="模擬干涉圖，可移動游標讀值" style="width:100%;display:block;border-radius:6px;border:1px solid var(--line);cursor:crosshair;touch-action:none"></canvas></div>
+      <div class="pane" style="gap:12px">
+        <svg id="fleg" viewBox="0 0 320 78" role="img" aria-label="色階圖例" style="width:100%;height:auto"></svg>
+        <div id="fread" style="display:grid;gap:10px"></div>
+      </div>
+    </div>
+    <div class="fig"><svg id="fprof" viewBox="0 0 720 250" role="img" aria-label="沿剖面的位移與色環對照"></svg></div>
+  </div>
+  <div class="defs">
+    <div><b>數圈數</b>從不動的邊緣往中心數，圈數乘以 2.8 公分，就是中心相對邊緣的視線位移。</div>
+    <div><b>看顏色順序</b>由外往內的色序代表距離變長還是變短，也就是遠離或靠近衛星。各軟體色序定義不同，一定要看圖例。</div>
+    <div><b>圈越密，變化越劇烈</b>圈擠在一起表示短距離內位移差很大。密到相鄰像元差超過半圈，就無法正確解算。</div>
+    <div><b>一片雜訊是失相干</b>植被茂密、地表劇烈改變或兩次拍攝間隔太久，相位對不起來，圈就消失在雜訊裡。台灣山區常見。</div>
+    <div><b>圈只是相對值</b>彩虹圈每 2.8 公分重複一次，要選一個不動的參考點，再做「相位解纏」把圈數接起來，才得到連續的位移圖。</div>
+    <div><b>不是每個圈都是位移</b>大氣水氣、地形模型誤差也會畫出條紋。要用多期影像比對，或搭配 GNSS、現地觀測確認。</div>
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section id="verdict">
+  <div class="sec-head">
+    <div class="sec-no">08 / 迎視坡為何不敏感</div>
+    <h2>面對衛星的坡面回波強，滑動反而測不太到</h2>
+    <p>下表用上方第 06 節的坡度 α 與入射角 θ 即時計算。順坡滑動在視線上的投影，迎視坡是 sin(θ−α)，背視坡是 sin(θ+α)。</p>
+  </div>
+  <div class="bench">
+    <div class="tbl"><table id="tbl"></table></div>
+    <div class="verdict">
+      <div><h3>原因：視線幾乎垂直坡面</h3><p class="note" style="color:var(--ink)">面向衛星的坡，雷達視線接近坡面的法線方向。順坡滑動是沿著坡面走，跟視線接近垂直，投影到視線上的量本來就小。回波強是因為坡面正對雷達，和位移敏感度是兩回事。</p></div>
+      <div><h3>常見誤解：朝向衛星滑就最敏感</h3><p class="note" style="color:var(--ink)">這個說法只看了水平分量。順坡滑動同時往下，往下的分量在迎視坡會抵銷朝向衛星的分量。真正敏感度最高的是背視坡，前縮與疊置則是另一個獨立的問題。</p></div>
+    </div>
+    <div class="quote">
+      <div class="k note">一句話整理</div>
+      <p id="wording">面對衛星的坡面回波強，但視線幾乎垂直坡面，順坡滑動投影到視線上的量很小。坡度接近或超過入射角時，還會出現前縮與疊置，資料品質更差。背對衛星的坡面敏感度最高，但坡度太陡會落入陰影。坡向接近南北的坡面，升降軌都不敏感，需要其他監測手段補足。</p>
+      <button class="btn" id="copy" type="button">複製文字</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== AMP ===== -->
+<section id="amp">
+  <div class="sec-head">
+    <div class="sec-no">09 / 振幅影像怎麼看</div>
+    <h2>亮暗代表地表把電波彈回衛星的能力</h2>
+    <p>InSAR 用的是相位，但 SAR 影像本身的亮暗（振幅，也叫後向散射強度）一樣很有用。地表的材質、粗糙度、含水量一改變，彈回衛星的電波就跟著改變。比較事件前後兩張影像，變亮或變暗的地方就是有變化的地方。崩塌與淹水判釋都是靠這個原理。</p>
+  </div>
+  <div class="bench">
+    <h3>四種典型的反射方式</h3>
+    <div class="fig"><svg id="svgSc" viewBox="0 0 720 230" role="img" aria-label="四種地表的雷達反射方式"></svg></div>
+    <p class="note">青色粗箭頭是彈回衛星的回波，越粗代表越亮。下方兩個色塊是同一地表在 VV 與 VH 極化下的大致亮度（極化見本節後半）。</p>
+  </div>
+  <div class="bench">
+    <h3>事件前後比一比</h3>
+    <div class="controls" style="align-items:center"><div class="seg" role="group" aria-label="情境" id="scSeg">
+      <button type="button" data-s="flood">農地淹水</button><button type="button" data-s="floodveg">淹水的樹林或市區</button><button type="button" data-s="slide">森林崩塌</button><button type="button" data-s="debris">土石堆積</button></div></div>
+    <div class="fig"><svg id="svgEv" viewBox="0 0 720 192" role="img" aria-label="事件前後的回波變化"></svg></div>
+    <p class="note" id="evNote" style="color:var(--ink)"></p>
+  </div>
+  <div class="defs">
+    <div><b>淹水找「變暗」</b>水面像鏡子，把電波彈往遠離衛星的方向。SAR 可以穿雲，颱風豪雨期間光學衛星被雲遮住時特別好用。VV 對水面最敏感。</div>
+    <div><b>淹水也可能「變亮」</b>淹水的樹林或市區，水面與樹幹、牆面形成二次反射，反而更亮。強風吹皺的水面也會變亮，容易漏判。</div>
+    <div><b>山區暗區先排除</b>雷達陰影、柏油路、跑道本來就暗，要用事件前影像排除，避免誤判為淹水。</div>
+    <div><b>崩塌看變化而非亮暗</b>植被被沖掉，VH 常明顯變暗；堆積的粗糙土石則可能變亮。要比較事件前後，而不是只看單張影像。</div>
+    <div><b>同調性是另一把尺</b>地表被擾動的地方，前後兩期的相位對不起來，同調性驟降，對崩塌範圍很敏感。但台灣山區植被茂密，C 波段平時同調性就偏低。</div>
+    <div><b>幾何限制一樣存在</b>崩塌常發生在陡坡，可能落在疊置或陰影區（第 04 節），該軌道看不到。升降軌都要看，前後要用同一軌道比較。</div>
+  </div>
+  <div class="bench" style="gap:12px">
+    <h3>迎視坡為什麼比較亮</h3>
+    <p class="note" style="color:var(--ink)">有兩個原因疊加。第一是面積效應：前縮讓一格像素對應的地面面積變大，格子裡的散射體變多，回波加總起來就比較強，坡度接近入射角時尤其明顯（見第 04 節的格子圖）。第二是角度效應：迎視坡正對雷達，局部入射角小，每單位面積本身就反射比較多回去。判釋崩塌或淹水前，通常先做「地形輻射校正」（RTC），扣掉面積效應，讓不同坡向的亮度可以互相比較。</p>
+    <div class="tbl"><table>
+      <tr><th>觀測量</th><th>回答的問題</th><th>適合</th><th>需要的產品</th></tr>
+      <tr><td>振幅（亮暗）</td><td>地表外觀有沒有變</td><td>淹水、突發崩塌、新增堆積</td><td>GRD 即可</td></tr>
+      <tr><td>同調性</td><td>地表有沒有被擾動</td><td>崩塌範圍、地表破壞</td><td>SLC</td></tr>
+      <tr><td>相位（InSAR）</td><td>動了多少公分</td><td>緩慢潛移、沉陷</td><td>SLC</td></tr>
+    </table></div>
+  </div>
+  <div class="bench" style="gap:12px">
+    <h3>極化：VV、VH 是什麼</h3>
+    <div class="split">
+      <div style="display:grid;gap:10px;min-width:0">
+        <p class="note" style="color:var(--ink)">雷達波是電磁波，電場會一邊前進一邊振動。振動方向是水平的叫 H，垂直的叫 V。雷達可以選擇用哪個方向發射，也可以用兩個方向接收，組合起來就是四種：第一個字母是發射、第二個是接收。</p>
+        <p class="note" style="color:var(--ink)">發射和接收方向相同的叫同極化（VV、HH），不同的叫交叉極化（VH、HV）。電波打到平面或粗糙地表，大多維持原本的振動方向，所以 VV 比較強。打進樹冠，在枝葉之間亂彈好幾次，振動方向被打亂，才會出現較多的 VH。所以 VH 特別能反映植被多寡，森林被沖掉時 VH 會明顯下降。</p>
+      </div>
+      <div class="pane" style="min-width:0"><svg viewBox="0 0 360 230" role="img" aria-label="H 與 V 振動方向示意" style="width:100%;height:auto">
+        <text class="t tb" x="10" y="20">電場振動方向</text>
+        <g transform="translate(20,40)"><rect width="150" height="80" rx="6" fill="var(--chip)"/><path d="M20,40 H130" stroke="var(--muted)" stroke-dasharray="3 3"/><path d="M120,34 l10,6 l-10,6" fill="none" stroke="var(--muted)"/><path d="M45,40 H105" stroke="var(--fore)" stroke-width="3"/><path d="M45,40 l8,-5 v10z M105,40 l-8,-5 v10z" fill="var(--fore)"/><text class="t tb" x="75" y="70" text-anchor="middle">H 水平</text></g>
+        <g transform="translate(190,40)"><rect width="150" height="80" rx="6" fill="var(--chip)"/><path d="M20,40 H130" stroke="var(--muted)" stroke-dasharray="3 3"/><path d="M120,34 l10,6 l-10,6" fill="none" stroke="var(--muted)"/><path d="M75,12 V54" stroke="var(--back)" stroke-width="3"/><path d="M75,12 l-5,8 h10z M75,54 l-5,-8 h10z" fill="var(--back)"/><text class="t tb" x="75" y="72" text-anchor="middle">V 垂直</text></g>
+        <text class="tm" x="10" y="140">虛線箭頭是電波前進方向</text>
+        <g transform="translate(10,152)" font-size="12">
+          <rect width="340" height="70" rx="6" fill="none" stroke="var(--line)"/>
+          <text class="tm" x="12" y="20">發射 ＼ 接收</text><text class="t tb" x="150" y="20" text-anchor="middle">H</text><text class="t tb" x="260" y="20" text-anchor="middle">V</text>
+          <text class="t tb" x="40" y="42" text-anchor="middle">H</text><text class="t mn" x="150" y="42" text-anchor="middle">HH 同極化</text><text class="t mn" x="260" y="42" text-anchor="middle">HV 交叉</text>
+          <text class="t tb" x="40" y="62" text-anchor="middle">V</text><text class="t mn" x="150" y="62" text-anchor="middle">VH 交叉</text><text class="t mn" x="260" y="62" text-anchor="middle">VV 同極化</text>
+        </g></svg></div>
+    </div>
+    <div class="tbl"><table>
+      <tr><th>衛星與地區</th><th>可取得的極化</th><th>說明</th></tr>
+      <tr><td>Sentinel-1，陸地（含台灣）</td><td><span class="chip good">VV</span> <span class="chip good">VH</span></td><td>以 V 發射，同時用 V、H 接收</td></tr>
+      <tr><td>Sentinel-1，極區海冰</td><td><span class="chip warn">HH</span> <span class="chip warn">HV</span></td><td>以 H 發射，H 對海冰判釋較有利</td></tr>
+      <tr><td>Sentinel-1，大洋</td><td><span class="chip mute">VV</span></td><td>波浪模式，單極化</td></tr>
+      <tr><td>全極化衛星（如 ALOS-2、RADARSAT-2）</td><td>HH、HV、VH、VV</td><td>輪流以 H、V 發射，可取得四種組合，但通常刈幅較窄、拍攝機會較少</td></tr>
+    </table></div>
+    <p class="note" style="color:var(--ink)">Sentinel-1 每次拍攝只能選一種發射方向，所以最多只有兩種組合。ESA 依全球觀測計畫為每個地區排定模式：陸地以 VV+VH 為主，極區以 HH+HV 為主。台灣只看得到 VV、VH 是這個原因，不是衛星做不到 HH。要四種組合，需要全極化衛星。極化方式依 <a href="https://sentinels.copernicus.eu/web/sentinel/user-guides/sentinel-1-sar/acquisition-modes" style="color:var(--accent)">ESA Sentinel-1 觀測模式說明</a>。</p>
+  </div>
+</section>
+
+<!-- ===== EQ ===== -->
+<section id="quake">
+  <div class="sec-head">
+    <div class="sec-no">10 / 地震後的干涉圖</div>
+    <h2>斷層錯動的彩虹圖，為什麼不是圓形</h2>
+    <p>第 07 節的圓圈，是中心往下沉的單一沉陷。地震時斷層兩側往相反方向錯動，一側靠近衛星、另一側遠離衛星，條紋就會沿著斷層拉長，分成兩塊顏色順序相反的區域。下面模擬一條水平錯動的斷層，紅線是斷層，黑色箭頭是地表實際移動的方向與大小。</p>
+  </div>
+  <div class="bench">
+    <div class="controls">
+      <div class="ctl"><label for="eqs">錯動量<output id="eqso"></output></label><input id="eqs" type="range" min="20" max="400" step="10"></div>
+      <div class="ctl"><label for="eqa">斷層走向（由北順時針）<output id="eqao"></output></label><input id="eqa" type="range" min="0" max="179" step="1"></div>
+    </div>
+    <div class="controls" style="align-items:center">
+      <div class="seg" role="group" aria-label="錯動方向"><button id="eqR" type="button">右移</button><button id="eqL" type="button">左移</button></div>
+      <div class="seg" role="group" aria-label="軌道"><button id="eqAsc" type="button">升軌</button><button id="eqDesc" type="button">降軌</button></div>
+      <div class="seg" role="group" aria-label="顯示"><button id="eqW" type="button">干涉圖</button><button id="eqU" type="button">視線位移圖</button></div>
+      <div class="seg" role="group" aria-label="箭頭"><button id="eqArr" type="button">地表移動箭頭</button></div>
+    </div>
+    <div class="split">
+      <div class="pane"><canvas id="eqcan" aria-label="斷層錯動的模擬干涉圖" style="width:100%;display:block;border-radius:6px;border:1px solid var(--line);cursor:crosshair;touch-action:none"></canvas></div>
+      <div class="pane" style="gap:10px"><svg id="eqleg" viewBox="0 0 320 78" role="img" aria-label="色階圖例" style="width:100%;height:auto"></svg><div id="eqread" style="display:grid;gap:10px"></div></div>
+    </div>
+  </div>
+  <div class="bench" style="gap:12px">
+    <h3>判讀地震干涉圖的步驟</h3>
+    <div class="tbl"><table>
+      <tr><th>步驟</th><th>看什麼</th><th>在模擬圖上</th></tr>
+      <tr><td class="mono">1</td><td>先找不動的區域，當作數圈的起點</td><td>四周邊緣顏色平穩、條紋稀疏的地方</td></tr>
+      <tr><td class="mono">2</td><td>找斷層：條紋最密、顏色順序突然反轉，或一條雜訊帶</td><td>紅線附近。實際影像常因地表破裂與變形太大而失相干，斷層就藏在那條雜訊帶裡</td></tr>
+      <tr><td class="mono">3</td><td>判斷兩側方向：由外往斷層數，看色序是「遠離」還是「靠近」衛星</td><td>斷層兩側色序相反，一側遠離、一側靠近</td></tr>
+      <tr><td class="mono">4</td><td>數圈數：圈數 × 2.8 cm 是視線位移，不是實際錯動量</td><td>右側卡片顯示兩側的最大視線位移</td></tr>
+      <tr><td class="mono">5</td><td>換算實際錯動：需要升降軌一起看，或搭配 GNSS</td><td>切換升降軌，同一個地震的條紋分布會不同</td></tr>
+    </table></div>
+  </div>
+  <div class="defs">
+    <div><b>為什麼沿斷層拉長</b>斷層兩側整片地殼往相反方向滑，越靠近斷層移動越多，離斷層越遠越小，所以條紋與斷層大致平行，在斷層兩端收尾。</div>
+    <div><b>斷層兩端的四瓣形</b>斷層端點附近，一側被擠壓、一側被拉張，地表除了滑動還有些許推擠，條紋常呈現蝴蝶狀的四瓣形。</div>
+    <div><b>南北走向的斷層看不太到</b>把走向調到 0°，錯動變成南北向，幾乎垂直於 Sentinel-1 的視線，條紋大幅減少。台灣許多斷層接近南北走向，這是 InSAR 的先天限制。</div>
+    <div><b>升降軌會看到不同圖案</b>升軌往東看、降軌往西看，同一個東西向位移，在兩軌的色序相反。兩軌合起來才能拆出東西向與垂直位移。</div>
+    <div><b>錯動太大會數不清</b>錯動量調大，斷層附近條紋密到相鄰像元差超過半圈，就無法正確解纏。大地震常搭配像素偏移量法或 GNSS 補足近斷層位移。</div>
+    <div><b>逆斷層、正斷層長得不一樣</b>以垂直位移為主的地震，條紋集中在上盤，形狀偏向單側的橢圓或長條，不會出現這種兩側對稱、色序相反的圖案。</div>
+  </div>
+  <p class="note">模擬採簡化的彈性錯動模型，只計算水平位移，用來說明圖案的成因，不代表真實地震的定量結果。</p>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section id="faq">
+  <div class="sec-head">
+    <div class="sec-no">11 / 常見問題</div>
+    <h2>初學時最常卡住的幾個問題</h2>
+  </div>
+  <div>
+    <details open><summary>InSAR 的理論看不懂，該從哪裡開始？</summary>
+      <p>先抓住三個觀念就夠了。第一，雷達影像依「離衛星多遠」排位置，不是依方向。第二，因為斜著看，坡面會被壓縮、翻轉或擋住。第三，InSAR 只量得到沿視線方向的距離變化。本頁 01 到 08 節就是照這個順序安排的，09 節再補充振幅影像的用法。</p></details>
+    <details><summary>雷達衛星怎麼拍攝？跟光學衛星拍照不一樣嗎？</summary>
+      <p>不一樣。光學衛星靠太陽光和鏡頭，依方向把地物排進影像。雷達衛星自己發射微波脈衝，依回音抵達的先後排位置，所以可以日夜、穿雲拍攝，但也因此產生幾何失真。見 <a href="#radar">01 節</a>。</p></details>
+    <details><summary>Sentinel-1 每一次脈衝涵蓋多大的範圍？是長條形嗎？</summary>
+      <p>是細長帶子，約 80 km × 4 km，面積約三百平方公里上下，這是由波長與天線尺寸估算的量級。天線沿飛行方向長 12.3 m、垂直方向只有 0.8 m，長邊方向的波束窄，短邊方向的波束寬，所以帶子的長軸垂直於飛行方向。見 <a href="#scan">02 節</a>。</p></details>
+    <details><summary>升軌經過台灣時，脈衝是東西向還是南北向的長條？</summary>
+      <p>大致東西向，更精確是東北東到西南西。升軌往北偏西飛（約 348°）、向東看，帶子垂直於飛行方向。降軌往南偏西飛、向西看，帶子同樣大致東西向。因此在台灣，東西向的坡面才有迎視、背視之分，南北向坡面升降軌都不敏感。</p></details>
+    <details><summary>每一格像素就是一次脈衝嗎？多久拍一張？</summary>
+      <p>不是。一次脈衝的回音由近到遠取樣，填滿影像的一整列；沿飛行方向的每一格，則是數百次脈衝合成的結果。Sentinel-1 每秒發射一千五百次以上的脈衝，一景影像約 25 秒拍完。InSAR 真正在意的是同一地點多久再拍一次，單顆衛星 12 天，目前雙星 6 天。見 <a href="#scan">02 節</a>的時間尺度表。</p></details>
+    <details><summary>一次脈衝填滿的一整列，會有幾格？</summary>
+      <p>約 2 萬到 2.5 萬格。每個子刈幅地面約 80 km 寬，換成斜距約 42 到 55 km，除以每格 2.3 m 就得到格數。近端的 IW1 較少，遠端的 IW3 較多。2 萬格乘以每格 15 奈秒約 0.3 毫秒，正好是一批回音持續的時間。見 <a href="#scan">02 節</a>。</p></details>
+    <details><summary>斜距 2.3 m 就是每一個脈衝的間距嗎？</summary>
+      <p>不是。2.3 m 是同一個脈衝的回音裡，相鄰兩個取樣點的距離差，由接收機每約 15 奈秒取樣一次決定（光速 × 取樣間隔 ÷ 2）。脈衝間距對應的是飛行方向，兩次脈衝之間照射位置往前移約 4 m，聚焦處理後 SLC 方位方向約每 14 m 一格。見 <a href="#scan">02 節</a>。</p></details>
+    <details><summary>常聽到 Sentinel-1 解析度 10 公尺，又是怎麼回事？</summary>
+      <p>10 m 是 GRD 高解析產品的像素間距，不是解析度。GRD 把斜距方向 5 格合併成 1 格降低雜訊，實際解析度約 20 × 22 m，再重新取樣成 10 m 網格方便套疊地圖。GRD 沒有相位，不能做 InSAR；InSAR 要用 SLC。見 <a href="#scan">02 節</a>的產品比較表。</p></details>
+    <details><summary>每一格像素的大小是 20 m × 2.3 m 嗎？</summary>
+      <p>接近，但要分清楚格點和解析度。Sentinel-1 IW 原始影像的格點約為斜距 2.3 m × 方位 14 m，斜距投影到地面後約 4 m。能分辨開的大小稱為解析度，地面約 5 m × 20 m，比格點稍大。實際做 InSAR 時，通常會把多格合併成一格以降低雜訊，最後成果常是 15 m 到數十公尺的方格。</p></details>
+    <details><summary>衛星離地面到底是 700 公里還是 850 公里？</summary>
+      <p>兩個都對，量的是不同距離。約 700 公里（精確約 693 公里）是軌道高度，也就是衛星到正下方地面的垂直距離。約 850 公里是斜距，也就是沿雷達視線斜看到刈幅中段的距離。斜距隨位置改變，IW1 近端約 770 公里，IW3 遠端約 920 公里，回音來回時間也從約 5.1 毫秒變成約 6.1 毫秒。等斜距線的圓弧半徑是斜距。</p></details>
+    <details><summary>要等第一次脈衝的回音回來，才能發射第二次嗎？不會搞混嗎？</summary>
+      <p>不用等。脈衝來回約 5.7 毫秒，但每 0.6 毫秒就發射一次，空中同時有約 9 個脈衝。一個子刈幅的回音只持續約 0.3 毫秒，剛好落在兩次發射之間的空檔，衛星依自己到地面的距離就能對上是哪一次脈衝的回音。這也是 IW 模式要切成三個子刈幅的原因，整個 250 km 一次照，回音會拉得太長而互相重疊。見 <a href="#scan">02 節</a>的時間表。 第 n 次脈衝的回音，固定落在第 n+9 與第 n+10 次發射之間的空檔。</p></details>
+    <details><summary>地震後的彩虹圖為什麼不是圓形？要怎麼判讀？</summary>
+      <p>斷層兩側往相反方向錯動，一側靠近衛星、一側遠離，條紋沿斷層拉長，兩側色序相反。判讀時先找不動的邊緣，再找條紋最密、色序反轉或失相干的帶子，那就是斷層。圈數乘以 2.8 cm 是視線位移，要升降軌一起看或搭配 GNSS 才能換算實際錯動量。南北走向的斷層錯動幾乎垂直視線，不容易看出來。見 <a href="#quake">10 節</a>。</p></details>
+    <details><summary>迎視坡比較亮，是因為很多反射點擠在同一格嗎？</summary>
+      <p>是主要原因，但還有第二個。面積效應：前縮讓一格對應的地面變大，散射體變多，回波加總較強。角度效應：迎視坡正對雷達，局部入射角小，每單位面積反射較多。判釋前通常做地形輻射校正（RTC）扣掉面積效應。見 <a href="#amp">09 節</a>。</p></details>
+    <details><summary>怎麼用 SAR 影像看崩塌和淹水？</summary>
+      <p>比較事件前後的亮暗變化。淹水的水面像鏡子，回波大幅變暗；淹水的樹林或市區則因二次反射變亮。崩塌讓植被消失，VH 常明顯變暗，堆積的土石可能變亮。也可搭配同調性下降判斷地表擾動。陡坡可能落在疊置或陰影區，升降軌都要看。見 <a href="#amp">09 節</a>。</p></details>
+    <details><summary>交叉極化是什麼？為什麼台灣只有 VV、VH？</summary>
+      <p>H、V 是電場的振動方向，第一個字母是發射、第二個是接收。發射與接收方向不同叫交叉極化（VH、HV），主要來自植被裡的多次散射。Sentinel-1 每次只能選一種發射方向，ESA 的觀測計畫讓陸地（含台灣）用 VV+VH，極區用 HH+HV。四種組合要全極化衛星才有。見 <a href="#amp">09 節</a>。</p></details>
+    <details><summary>電波在地面多次反射再回到衛星，會不會打亂回音順序？</summary>
+      <p>不會打亂脈衝之間的順序。回音要晚到 0.6 毫秒（6 × 10⁻⁴ 秒）才會錯排到下一個空檔，等於路徑要多繞約 90 km，而地面多次反射通常只多走幾公尺到幾十公尺。不過它會讓回音在同一列裡往後錯幾格，例如牆面與地面形成的二次反射，回音集中在牆腳，影像上成為很亮的線。這類穩定的強回音反而是 PS-InSAR 的好觀測點，人工角反射器也是利用三次反射。真正可能造成錯排的是「距離模糊」：刈幅外很遠的地物經天線旁瓣照到，回音剛好晚一整個空檔，形成淡淡的鬼影，Sentinel-1 在設計時已把它壓到很弱。</p></details>
+    <details><summary>「兩條等斜距線」是什麼意思？</summary>
+      <p>等斜距線是所有離衛星一樣遠的點連成的線，這些點的回音同時抵達。雷達把回音按時間切成一格一格，相鄰兩條等斜距線夾住的帶子就是一格像元。見 <a href="#range">03 節</a>。</p></details>
+    <details><summary>迎視坡和背視坡如何變成合成影像？</summary>
+      <p>每一格像元裝的是等斜距帶子碰到的地面。迎視坡和帶子接近平行，一格塞進好幾倍的地面，影像很亮但分不清位置。背視坡和帶子接近垂直，坡面被拉開到很多格，影像較暗但解析清楚。坡度超過入射角時，山頂和前方平地落在同一格，就是疊置。見 <a href="#compose">05 節</a>的逐格動畫。</p></details>
+    <details><summary>干涉圖上的彩虹圈要怎麼看？</summary>
+      <p>每一圈完整的色環代表視線方向約 2.8 公分的距離變化。從不動的邊緣數到中心，圈數乘以 2.8 公分就是相對位移；由外往內的色序代表遠離或靠近衛星，要對照圖例。圈越密代表位移變化越劇烈，一片雜訊則是失相干。見 <a href="#fringes">07 節</a>。</p></details>
+    <details><summary>面對衛星的坡面回波很強，為什麼滑動反而不敏感？</summary>
+      <p>因為視線幾乎垂直坡面。順坡滑動同時往下，往下的分量會抵銷朝向衛星的分量，迎視坡的投影量只有 sin(θ−α)。坡度接近或超過入射角時，還會出現前縮與疊置，資料品質更差。背對衛星的坡面敏感度最高，但太陡會落入陰影。見 <a href="#verdict">08 節</a>。</p></details>
+  </div>
+  <p class="note">參考資料：<a href="https://sentinel.esa.int/web/sentinel/user-guides/sentinel-1-sar/acquisition-modes/interferometric-wide-swath" style="color:var(--accent)">ESA Sentinel-1 Interferometric Wide Swath</a>、<a href="https://sentinel.esa.int/web/sentinel/technical-guides/sentinel-1-sar/products-algorithms/level-1-algorithms/ground-range-detected/iw" style="color:var(--accent)">ESA IW GRD 產品規格</a>、<a href="https://dataspace.copernicus.eu/node/3949" style="color:var(--accent)">Sentinel-1 orbital reconfiguration dates</a>。升降軌航向與脈衝帶尺寸為示意估算，實際分析請以影像參數檔為準。</p>
+</section>
+</div>
+
+<script>
+const R=Math.PI/180, $=s=>document.querySelector(s);
+const st={theta:39,fa:30,ba:35,track:'asc',aspect:80,slope:30};
+try{const v=JSON.parse(localStorage.getItem('insar-geo')||'null'); if(v) Object.assign(st,v);}catch(e){}
+const save=()=>{try{localStorage.setItem('insar-geo',JSON.stringify(st));}catch(e){}};
+const TR={asc:{name:'升軌',head:348},desc:{name:'降軌',head:192}};
+const phisOf=t=>(TR[t].head-90+360)%360;
+const f=(v,d=0)=>(Math.abs(v)<1e-9?0:v).toFixed(d);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ---------- Section 1 ---------- */
+function draw1(){
+  const th=st.theta*R, s1=Math.sin(th), c1=Math.cos(th);
+  const H=160, fr=H/Math.tan(st.fa*R), br=H/Math.tan(st.ba*R), m=260;
+  const V=[[0,0],[m,0],[m+fr,H],[m+fr+br,0],[2*m+fr+br,0]], W=V[4][0];
+  const base=300, left=20, s=Math.min(680/W,175/H);
+  const X=x=>left+x*s, Y=y=>base-y*s, ytop=(base-8)/s;
+  const rr=p=>p[0]*s1-p[1]*c1, uu=p=>p[0]*c1+p[1]*s1;
+  const cols=['var(--flat)','var(--fore)','var(--back)','var(--flat)'];
+  // markers
+  const tot=[0,1,2,3].reduce((a,i)=>a+Math.hypot(V[i+1][0]-V[i][0],V[i+1][1]-V[i][1]),0), step=tot/46;
+  const mk=[];
+  for(let i=0;i<4;i++){const a=V[i],b=V[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(2,Math.round(L/step));
+    for(let j=(i===0?0:1);j<=n;j++){const t=j/n;mk.push({p:[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],seg:i});}}
+  const vis=p=>{let mx=-1e9;for(const v of V) if(v[0]<p[0]-1e-6) mx=Math.max(mx,uu(v));return uu(p)>=mx-1e-6;};
+  mk.forEach(o=>{o.r=rr(o.p);o.v=vis(o.p);});
+  // shadow
+  const up=uu(V[2]); let sh=null;
+  if(uu(V[3])<up-1e-6){const a=V[3],b=V[4],ua=uu(a),ub=uu(b);
+    let t=(up-ua)/(ub-ua); t=Math.min(1,Math.max(0,t)); sh=[a[0]+(b[0]-a[0])*t,0];}
+  let g='';
+  g+=`<rect x="0" y="0" width="720" height="${base}" fill="var(--sky)"/>`;
+  const poly=V.map(v=>`${X(v[0])},${Y(v[1])}`).join(' ');
+  g+=`<polygon points="${X(0)},330 ${poly} ${X(W)},330" fill="var(--ground)"/>`;
+  if(sh) g+=`<polygon points="${X(V[2][0])},${Y(H)} ${X(sh[0])},${Y(0)} ${X(V[3][0])},${Y(0)}" fill="var(--shade)" opacity=".45"/>`;
+  // rays
+  const umax=Math.max(...V.map(uu));
+  for(let k=1;k<18;k++){const u0=umax*k/18;let best=null;
+    for(let i=0;i<4;i++){const a=V[i],b=V[i+1],ua=uu(a),ub=uu(b);
+      if((u0-ua)*(u0-ub)<=0&&ua!==ub){const t=(u0-ua)/(ub-ua),p=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];
+        if(!best||rr(p)<rr(best)) best=p;}}
+    if(!best) continue; const t=(ytop-best[1])/c1, q=[best[0]-t*s1,ytop];
+    g+=`<line x1="${X(q[0])}" y1="${Y(q[1])}" x2="${X(best[0])}" y2="${Y(best[1])}" stroke="var(--accent)" stroke-width="1" opacity=".55"/>`;
+    g+=`<circle cx="${X(best[0])}" cy="${Y(best[1])}" r="1.8" fill="var(--accent)"/>`;}
+  if(sh) g+=`<line x1="${X(V[2][0])}" y1="${Y(H)}" x2="${X(sh[0])}" y2="${Y(0)}" stroke="var(--shade)" stroke-width="1.2" stroke-dasharray="4 3"/>`;
+  // terrain line per segment
+  for(let i=0;i<4;i++) g+=`<line x1="${X(V[i][0])}" y1="${Y(V[i][1])}" x2="${X(V[i+1][0])}" y2="${Y(V[i+1][1])}" stroke="${cols[i]}" stroke-width="4" stroke-linecap="round"/>`;
+  mk.forEach(o=>{g+=`<circle cx="${X(o.p[0])}" cy="${Y(o.p[1])}" r="2.6" fill="${o.v?'var(--panel)':'var(--shade)'}" stroke="${o.v?cols[o.seg]:'var(--shade)'}" stroke-width="1.4"/>`;});
+  // summit wavefront
+  const gx=V[2][0]-H*c1/s1, ext=50/s;
+  g+=`<line x1="${X(gx)}" y1="${Y(0)}" x2="${X(V[2][0]+ext*c1)}" y2="${Y(H+ext*s1)}" stroke="#8a7fa6" stroke-width="1.6" stroke-dasharray="6 4"/>`;
+  g+=`<circle cx="${X(gx)}" cy="${Y(0)}" r="4" fill="none" stroke="#8a7fa6" stroke-width="1.6"/>`;
+  const lay=gx>V[1][0]?false:true;
+  g+=`<text class="tm" x="${X(gx)}" y="${Y(0)+18}" text-anchor="middle">${lay?'與山頂同斜距（落在山腳之前 → 疊置）':'與山頂同斜距'}</text>`;
+  // theta arc at near flat
+  const ox=X(m*0.45), oy=Y(0), L=60;
+  g+=`<line x1="${ox}" y1="${oy}" x2="${ox}" y2="${oy-L-8}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+  g+=`<line x1="${ox}" y1="${oy}" x2="${ox-(L+8)*s1}" y2="${oy-(L+8)*c1}" stroke="var(--ink)" stroke-width="1.6"/>`;
+  g+=`<path d="M${ox},${oy-38} A38,38 0 0 0 ${ox-38*s1},${oy-38*c1}" fill="none" stroke="var(--ink)"/>`;
+  g+=`<text class="t tb" x="${ox-10-20*s1}" y="${oy-44}" text-anchor="end">θ = ${st.theta}°</text>`;
+  // satellite
+  g+=`<g transform="translate(34,26)"><rect x="-7" y="-5" width="14" height="10" rx="2" fill="var(--ink)"/><rect x="-24" y="-3" width="14" height="6" fill="var(--accent)"/><rect x="10" y="-3" width="14" height="6" fill="var(--accent)"/></g>`;
+  g+=`<text class="t tb" x="64" y="30">衛星在這一側，往右下斜看</text>`;
+  if(sh) g+=`<text class="t" x="${X((V[3][0]+sh[0])/2)}" y="${Y(0)-8}" text-anchor="middle" fill="var(--shade)">陰影</text>`;
+  $('#svg1').innerHTML=g;
+
+  // ---- strip ----
+  const all=V.map(rr), rmin=Math.min(...all), rmax=Math.max(...all);
+  const RX=r=>120+(r-rmin)/(rmax-rmin)*585;
+  const lanes=[['近端平地',0,22],['迎視坡',1,48],['背視坡',2,74],['遠端平地',3,100]];
+  let h='';
+  h+=`<line x1="120" y1="190" x2="705" y2="190" stroke="var(--line)"/>`;
+  h+=`<text class="tm" x="120" y="206">離衛星近</text><text class="tm" x="705" y="206" text-anchor="end">離衛星遠（斜距 →）</text>`;
+  lanes.forEach(([nm,i,y])=>{
+    const pts=mk.filter(o=>o.seg===i||(i>0&&o===mk.find(q=>q.seg===i-1&&q.p[0]===V[i][0])));
+    const a=rr(V[i]),b=rr(V[i+1]);
+    h+=`<text class="t" x="8" y="${y+4}">${nm}</text>`;
+    h+=`<line x1="${RX(a)}" y1="${y}" x2="${RX(b)}" y2="${y}" stroke="${cols[i]}" stroke-width="2" opacity=".6"/>`;
+    const dir=b>=a?1:-1; h+=`<path d="M${RX(b)},${y} l${-7*dir},-4 l0,8z" fill="${cols[i]}"/>`;
+    mk.filter(o=>o.seg===i).forEach(o=>{h+=`<circle cx="${RX(o.r)}" cy="${y}" r="2.6" fill="${o.v?cols[i]:'none'}" stroke="${o.v?cols[i]:'var(--shade)'}"/>`;});
+  });
+  const NC=20, CW=585/NC, yT=124, CH=40;
+  h+=`<text class="t tb" x="8" y="${yT+CH/2}">合成影像</text><text class="tm" x="8" y="${yT+CH/2+16}">每格一個像素</text>`;
+  const cells=[...Array(NC)].map(()=>[]);
+  mk.filter(o=>o.v).forEach(o=>{const c=Math.min(NC-1,Math.max(0,Math.floor((RX(o.r)-120)/CW)));cells[c].push(o);});
+  const layR=st.fa>=st.theta?[RX(rr(V[2])),RX(rr(V[1]))]:null, shR=sh?[RX(rr(V[2])),RX(rr(sh))]:null;
+  const ov=(r,x)=>r&&x+CW>r[0]+0.5&&x<r[1]-0.5;
+  let layMid=null,shMid=null;
+  for(let c=0;c<NC;c++){const x=120+c*CW, arr=cells[c], n=arr.length;
+    const cnt=[0,0,0,0]; arr.forEach(o=>cnt[o.seg]++); const maj=cnt.indexOf(Math.max(...cnt));
+    let fill='var(--chip)',op=1;
+    if(n&&ov(layR,x)){fill='var(--bad)';op=.32;layMid=layMid??x;}
+    else if(!n&&ov(shR,x)){fill='var(--shade)';op=.6;shMid=shMid??x;}
+    else if(n){fill=cols[maj];op=Math.min(.12+.07*n,.55);}
+    h+=`<rect x="${x.toFixed(1)}" y="${yT}" width="${CW.toFixed(1)}" height="${CH}" fill="var(--chip)"/>`;
+    if(fill!=='var(--chip)') h+=`<rect x="${x.toFixed(1)}" y="${yT}" width="${CW.toFixed(1)}" height="${CH}" fill="${fill}" opacity="${op}"/>`;
+    h+=`<rect x="${x.toFixed(1)}" y="${yT}" width="${CW.toFixed(1)}" height="${CH}" fill="none" stroke="var(--line)"/>`;
+    const show=n>9?8:n, cols3=Math.min(3,Math.max(1,show)), rows=Math.ceil(show/3)||1;
+    arr.slice(0,show).forEach((o,i)=>{const cx=x+CW/2+((i%3)-(cols3-1)/2)*8, cy=yT+CH/2+(Math.floor(i/3)-(rows-1)/2)*9;
+      h+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3.4" fill="${cols[o.seg]}"/>`;});
+    if(n>9) h+=`<text class="tm tb" x="${(x+CW/2+8).toFixed(1)}" y="${yT+CH/2+13}" text-anchor="middle">+${n-8}</text>`;
+    if(n) h+=`<text class="tm mn" x="${(x+CW/2).toFixed(1)}" y="${yT-5}" text-anchor="middle" style="${n>=4?'font-weight:700;fill:var(--ink)':''}">${n}</text>`;
+  }
+  if(layR){const e=Math.max(120,Math.min(layR[0],layR[1]));h+=`<text class="tm tb" x="${Math.min(e,430)}" y="${yT+CH+15}" text-anchor="start" style="fill:var(--bad)">疊置：不同地方混在同一格</text>`;}
+  if(shR){h+=`<text class="tm tb" x="${Math.max(layR?640:200,Math.min(705,shR[1]-4))}" y="${yT+CH+15}" text-anchor="end">陰影：沒有訊號</text>`;}
+  if(!layR){let best=0,bi=0;cells.forEach((a,i)=>{const k=a.filter(o=>o.seg===1).length;if(k>best){best=k;bi=i;}});if(best>=2)h+=`<text class="tm tb" x="${120+bi*CW+CW/2}" y="${yT+CH+15}" text-anchor="middle" style="fill:var(--fore)">前縮：${best} 個點擠一格</text>`;}
+  h+=`<text class="tm" x="120" y="12">小點是坡面上等間距的地面點，依離衛星遠近落進下方格子，格子上方數字是點數</text>`;
+  $('#svg1b').innerHTML=h;
+
+  // ---- cards ----
+  const fl=st.theta-st.fa, fsr=100*Math.sin(fl*R);
+  let fs,fc; if(Math.abs(fl)<1){fs='整坡擠進同一像元';fc='bad';} else if(fl<0){fs='疊置';fc='bad';} else if(st.fa>0.6*st.theta){fs='嚴重前縮';fc='warn';} else {fs='前縮';fc='warn';}
+  const bl=st.theta+st.ba; const bsh=bl>90;
+  const bs=bsh?'陰影（部分無訊號）':'拉伸，像元密度高', bc=bsh?'mute':'ok';
+  $('#cards1').innerHTML=`
+  <div class="card"><div class="k"><span class="swatch" style="background:var(--fore)"></span>迎視坡　局部入射角 ${f(fl)}°</div><span class="chip ${fc}">${fs}</span>
+    <div class="v">${f(fsr,1)} m</div><div class="n">每 100 m 坡長在影像中佔的斜距${fsr<0?'，負值表示順序顛倒':''}</div></div>
+  <div class="card"><div class="k"><span class="swatch" style="background:var(--back)"></span>背視坡　局部入射角 ${f(bl)}°</div><span class="chip ${bc}">${bs}</span>
+    <div class="v">${bsh?'—':f(100*Math.sin(bl*R),1)+' m'}</div><div class="n">${bsh?'坡度 > 90°−θ = '+(90-st.theta)+'°，雷達照不到':'每 100 m 坡長在影像中佔的斜距'}</div></div>
+  <div class="card"><div class="k"><span class="swatch" style="background:var(--flat)"></span>平地（參考）</div><span class="chip ok">正常</span>
+    <div class="v">${f(100*s1,1)} m</div><div class="n">每 100 m 地面在影像中佔的斜距</div></div>`;
+}
+
+/* ---------- Section 2 ---------- */
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const losV=(th,ph)=>[Math.sin(th*R)*Math.sin(ph*R),Math.sin(th*R)*Math.cos(ph*R),Math.cos(th*R)];
+const motV=(A,a)=>[Math.cos(a*R)*Math.sin(A*R),Math.cos(a*R)*Math.cos(A*R),-Math.sin(a*R)];
+function geo(A,a,th,ph){const ar=Math.atan(Math.tan(a*R)*Math.cos((A-ph)*R))/R;
+  if(ar>=th-0.5) return {k:'lay',t:'疊置',c:'bad',ar};
+  if(ar>0.6*th) return {k:'fs2',t:'嚴重前縮',c:'warn',ar};
+  if(ar>3) return {k:'fs',t:'前縮',c:'warn',ar};
+  if(-ar>90-th) return {k:'sh',t:'陰影',c:'mute',ar};
+  return {k:'ok',t:ar<-3?'拉伸，幾何良好':'幾何正常',c:'ok',ar};}
+const dirName=A=>['北','東北','東','東南','南','西南','西','西北'][Math.round(A/45)%8];
+const PT=(cx,cy,r,A)=>[cx+r*Math.sin(A*R),cy-r*Math.cos(A*R)];
+
+function draw2(){
+  const th=st.theta, A=st.aspect, a=st.slope, ph=phisOf(st.track);
+  const L=losV(th,ph), D=motV(A,a), d=dot(D,L);
+  // dial
+  const cx=140,cy=140; let g='';
+  g+=`<circle cx="${cx}" cy="${cy}" r="100" fill="var(--sky)" stroke="var(--line)"/>`;
+  for(let k=0;k<360;k+=30){const p=PT(cx,cy,100,k),q=PT(cx,cy,k%90?94:88,k);g+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="var(--muted)"/>`;}
+  [['北',0],['東',90],['南',180],['西',270]].forEach(([n,k])=>{const p=PT(cx,cy,78,k);g+=`<text class="tm tb" x="${p[0]}" y="${p[1]+4}" text-anchor="middle">${n}</text>`;});
+  // track line on satellite side
+  const hd=TR[st.track].head, tc=PT(cx,cy,122,ph), t1=[tc[0]-60*Math.sin(hd*R),tc[1]+60*Math.cos(hd*R)], t2=[tc[0]+60*Math.sin(hd*R),tc[1]-60*Math.cos(hd*R)];
+  g+=`<line x1="${t1[0]}" y1="${t1[1]}" x2="${t2[0]}" y2="${t2[1]}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 3"/>`;
+  g+=`<path d="M${t2[0]},${t2[1]} l${-8*Math.sin((hd-25)*R)},${8*Math.cos((hd-25)*R)} M${t2[0]},${t2[1]} l${-8*Math.sin((hd+25)*R)},${8*Math.cos((hd+25)*R)}" stroke="var(--ink)" stroke-width="1.5" fill="none"/>`;
+  const lp=PT(cx,cy,85,ph); g+=`<line x1="${cx}" y1="${cy}" x2="${lp[0]}" y2="${lp[1]}" stroke="var(--accent)" stroke-width="3"/><circle cx="${lp[0]}" cy="${lp[1]}" r="5" fill="var(--accent)"/>`;
+  const ll=PT(cx,cy,56,ph); g+=`<text class="t tb" x="${ll[0]}" y="${ll[1]-8}" text-anchor="middle" fill="var(--accent)" style="fill:var(--accent)">往衛星</text>`;
+  const ap=PT(cx,cy,88,A), ah1=PT(ap[0],ap[1],12,A+155), ah2=PT(ap[0],ap[1],12,A-155);
+  g+=`<line x1="${cx}" y1="${cy}" x2="${ap[0]}" y2="${ap[1]}" stroke="var(--fore)" stroke-width="4" stroke-linecap="round"/><polygon points="${ap[0]},${ap[1]} ${ah1[0]},${ah1[1]} ${ah2[0]},${ah2[1]}" fill="var(--fore)"/>`;
+  g+=`<circle cx="${ap[0]}" cy="${ap[1]}" r="14" fill="var(--fore)" opacity=".15"/>`;
+  g+=`<circle cx="${cx}" cy="${cy}" r="4" fill="var(--ink)"/>`;
+  g+=`<text class="tm" x="140" y="274" text-anchor="middle">虛線為${TR[st.track].name}飛行方向，橘色為下坡方向</text>`;
+  $('#dial').innerHTML=g;
+
+  // side view in range plane (left = toward satellite)
+  const O=[170,150], S=95, ht=Math.cos(a*R)*Math.cos((A-ph)*R), ar=Math.atan(Math.tan(a*R)*Math.cos((A-ph)*R));
+  const sx=x=>O[0]+x*S, sy=y=>O[1]-y*S, l2=[-Math.sin(th*R),Math.cos(th*R)], m2=[-ht,-Math.sin(a*R)];
+  let h='';
+  h+=`<rect x="0" y="0" width="300" height="250" fill="var(--sky)"/>`;
+  const x0=-1.9,x1=1.4; h+=`<polygon points="${sx(x0)},${sy(x0*Math.tan(ar))} ${sx(x1)},${sy(x1*Math.tan(ar))} ${sx(x1)},250 ${sx(x0)},250" fill="var(--ground)"/>`;
+  h+=`<line x1="${sx(x0)}" y1="${sy(x0*Math.tan(ar))}" x2="${sx(x1)}" y2="${sy(x1*Math.tan(ar))}" stroke="var(--groundline)" stroke-width="2"/>`;
+  h+=`<line x1="${sx(l2[0]*1.6)}" y1="${sy(l2[1]*1.6)}" x2="${sx(-l2[0]*1.1)}" y2="${sy(-l2[1]*1.1)}" stroke="var(--accent)" stroke-dasharray="4 3"/>`;
+  h+=`<text class="t tb" x="${sx(l2[0]*1.6)+4}" y="${sy(l2[1]*1.6)+14}" style="fill:var(--accent)">視線 LOS</text>`;
+  const pj=[l2[0]*d,l2[1]*d];
+  h+=`<line x1="${sx(m2[0])}" y1="${sy(m2[1])}" x2="${sx(pj[0])}" y2="${sy(pj[1])}" stroke="var(--muted)" stroke-dasharray="2 3"/>`;
+  h+=`<line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(pj[0])}" y2="${sy(pj[1])}" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" opacity=".85"/>`;
+  const ang=Math.atan2(m2[1],m2[0]), tip=[sx(m2[0]),sy(m2[1])];
+  h+=`<line x1="${sx(0)}" y1="${sy(0)}" x2="${tip[0]}" y2="${tip[1]}" stroke="var(--fore)" stroke-width="3"/>`;
+  h+=`<polygon points="${tip[0]},${tip[1]} ${tip[0]-10*Math.cos(ang-0.4)},${tip[1]+10*Math.sin(ang-0.4)} ${tip[0]-10*Math.cos(ang+0.4)},${tip[1]+10*Math.sin(ang+0.4)}" fill="var(--fore)"/>`;
+  h+=`<circle cx="${sx(0)}" cy="${sy(0)}" r="3.5" fill="var(--ink)"/>`;
+  h+=`<text class="t" x="${tip[0]+(m2[0]>0?6:-6)}" y="${tip[1]+16}" text-anchor="${m2[0]>0?'start':'end'}" style="fill:var(--fore)">滑動</text>`;
+  h+=`<g transform="translate(22,22)"><rect x="-6" y="-4" width="12" height="8" rx="2" fill="var(--ink)"/><rect x="-18" y="-2" width="10" height="4" fill="var(--accent)"/><rect x="8" y="-2" width="10" height="4" fill="var(--accent)"/></g>`;
+  h+=`<text class="tm" x="44" y="26">衛星方向</text>`;
+  h+=`<text class="tm" x="150" y="270" text-anchor="middle">粗青線是滑動投影到視線上的長度</text>`;
+  $('#side').innerHTML=h;
+
+  // polar
+  const pc=140, PR=110; let p='';
+  [0.25,0.5,0.75,1].forEach(v=>{p+=`<circle cx="${pc}" cy="${pc}" r="${PR*v}" fill="none" stroke="var(--line)"/>`;});
+  p+=`<text class="tm mn" x="${pc+3}" y="${pc-PR*0.5-3}">50%</text><text class="tm mn" x="${pc+3}" y="${pc-PR+12}">100%</text>`;
+  [['北',0],['東',90],['南',180],['西',270]].forEach(([n,k])=>{const q=PT(pc,pc,PR+14,k);p+=`<text class="tm tb" x="${q[0]}" y="${q[1]+4}" text-anchor="middle">${n}</text>`;});
+  const other=st.track==='asc'?'desc':'asc', po=phisOf(other), Lo=losV(th,po);
+  let op=''; for(let k=0;k<=360;k+=3){const q=PT(pc,pc,PR*Math.abs(dot(motV(k,a),Lo)),k);op+=(k?'L':'M')+q[0].toFixed(1)+','+q[1].toFixed(1);}
+  p+=`<path d="${op}" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="3 3"/>`;
+  const colOf={ok:'var(--accent)',fs:'var(--fore)',fs2:'var(--fore)',lay:'var(--bad)',sh:'var(--shade)'};
+  for(let k=0;k<360;k+=2){const g1=geo(k+1,a,th,ph), q1=PT(pc,pc,PR*Math.abs(dot(motV(k,a),L)),k), q2=PT(pc,pc,PR*Math.abs(dot(motV(k+2,a),L)),k+2);
+    p+=`<line x1="${q1[0]}" y1="${q1[1]}" x2="${q2[0]}" y2="${q2[1]}" stroke="${colOf[g1.k]}" stroke-width="3" stroke-linecap="round"/>`;}
+  const cq=PT(pc,pc,PR*Math.abs(d),A); p+=`<line x1="${pc}" y1="${pc}" x2="${cq[0]}" y2="${cq[1]}" stroke="var(--fore)" stroke-width="1.5"/><circle cx="${cq[0]}" cy="${cq[1]}" r="6" fill="var(--panel)" stroke="var(--fore)" stroke-width="2.5"/>`;
+  p+=`<text class="tm" x="140" y="276" text-anchor="middle">實線：${TR[st.track].name}　虛線：${TR[other].name}</text>`;
+  $('#polar').innerHTML=p;
+
+  // cards
+  const G=geo(A,a,th,ph), Go=geo(A,a,th,po), dO=dot(D,Lo);
+  const along=Math.abs(Math.cos(a*R)*Math.sin((A-ph)*R));
+  const good=x=>Math.abs(x)>=0.6?'good':Math.abs(x)>=0.3?'warn':'bad';
+  const lbl=x=>Math.abs(x)>=0.6?'敏感':Math.abs(x)>=0.3?'普通':'不敏感';
+  const best=(Go.k==='sh'||Go.k==='lay')?st.track:(G.k==='sh'||G.k==='lay')?other:(Math.abs(d)>=Math.abs(dO)?st.track:other);
+  $('#cards2').innerHTML=`
+  <div class="card"><div class="k">${dirName(A)}向坡，坡度 ${a}°，${TR[st.track].name}</div><span class="chip ${good(d)}">${lbl(d)}　${f(Math.abs(d)*100)}%</span>
+    <div class="v">${f(Math.abs(d)*10,1)} mm</div><div class="n">坡面滑 10 mm，衛星量到的距離變化（${d>=0?'朝向衛星，距離縮短':'遠離衛星，距離拉長'}）</div></div>
+  <div class="card"><div class="k">這個坡在${TR[st.track].name}影像中的幾何</div><span class="chip ${G.c}">${G.t}</span>
+    <div class="v">${f(G.ar,0)}°</div><div class="n">視線剖面上的視坡度，正值面向衛星。沿飛行方向的位移分量 ${f(along*100)}% 幾乎完全看不到</div></div>
+  <div class="card"><div class="k">升軌與降軌比較</div>
+    <div class="n" style="color:var(--ink)">${TR[st.track].name} <span class="mono">${f(Math.abs(d)*100)}%</span>　<span class="chip ${G.c}">${G.t}</span></div>
+    <div class="n" style="color:var(--ink)">${TR[other].name} <span class="mono">${f(Math.abs(dO)*100)}%</span>　<span class="chip ${Go.c}">${Go.t}</span></div>
+    <div class="n">這個坡建議優先看<b style="color:var(--accent)">${TR[best].name}</b>。南北向坡兩軌都低，要靠 GNSS 或其他方法補足。</div></div>`;
+}
+
+/* ---------- Section 3 ---------- */
+function draw3(){
+  const th=st.theta, a=st.slope;
+  const rows=[
+    ['迎視坡（面向衛星）', Math.abs(th-a), Math.sin((th-a)*R), a>=th?['疊置','bad']:a>0.6*th?['嚴重前縮','warn']:['前縮','warn'], `sin(θ−α) = sin(${f(th-a)}°)`],
+    ['背視坡（背對衛星）', th+a, Math.sin((th+a)*R), th+a>90?['陰影','mute']:['拉伸，良好','ok'], `sin(θ+α) = sin(${f(th+a)}°)`],
+    ['側向坡（坡向與視線垂直）', Math.acos(Math.cos(th*R)*Math.cos(a*R))/R, -Math.sin(a*R)*Math.cos(th*R), ['正常','ok'], 'sinα · cosθ，只剩向下分量']
+  ];
+  const echo=(li,sh)=>sh?['無','mute']:Math.cos(li*R)>0.85?['強','good']:Math.cos(li*R)>0.6?['中','warn']:['弱','bad'];
+  let h=`<tr><th>坡面（坡度 ${a}°、θ = ${th}°）</th><th>局部入射角</th><th>回波強度</th><th>影像幾何</th><th>順坡滑動敏感度</th></tr>`;
+  rows.forEach(r=>{const sh=r[3][0]==='陰影', e=echo(r[1],sh), s=Math.abs(r[2]);
+    h+=`<tr><td>${r[0]}</td><td class="mono">${f(r[1])}°</td><td><span class="chip ${e[1]}">${e[0]}</span></td><td><span class="chip ${r[3][1]}">${r[3][0]}</span></td>
+    <td><span class="mono">${f(s*100)}%</span><div class="note">${r[4]}</div></td></tr>`;});
+  $('#tbl').innerHTML=h;
+}
+
+/* ---------- Section 1b: compose image ---------- */
+const an={pos:1,playing:false,sel:-1,last:0,N:40,meta:null};
+const SEGN=['近端平地','迎視坡','背視坡','遠端平地'], SEGC=['var(--flat)','var(--fore)','var(--back)','var(--flat)'];
+function draw1c(){
+  const th=st.theta*R,s1=Math.sin(th),c1=Math.cos(th);
+  const H=160,fr=H/Math.tan(st.fa*R),br=H/Math.tan(st.ba*R),m=260;
+  const V=[[0,0],[m,0],[m+fr,H],[m+fr+br,0],[2*m+fr+br,0]],W=V[4][0];
+  const base=262,left=20,s=Math.min(680/W,165/H);
+  const X=x=>left+x*s,Y=y=>base-y*s,ytop=(base-6)/s;
+  const rr=p=>p[0]*s1-p[1]*c1,uu=p=>p[0]*c1+p[1]*s1;
+  const vmax=x=>{let mx=-1e9;for(const v of V) if(v[0]<x-1e-6) mx=Math.max(mx,uu(v));return mx;};
+  const smp=[];
+  for(let i=0;i<4;i++){const a=V[i],b=V[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(60,Math.round(L/W*1400));
+    for(let j=0;j<=n;j++){const t=j/n,p=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];smp.push({p,seg:i,ds:j===n?0:L/n,r:rr(p),v:uu(p)>=vmax(p[0])-1e-6});}}
+  const rV=V.map(rr),rmin=Math.min(...rV),rmax=Math.max(...rV),N=an.N,bw=(rmax-rmin)/N,ref=bw/s1;
+  const bins=[...Array(N)].map(()=>[0,0,0,0]);
+  smp.forEach(o=>{o.b=Math.min(N-1,Math.max(0,Math.floor((o.r-rmin)/bw)));if(o.v) bins[o.b][o.seg]+=o.ds;});
+  const tot=bins.map(b=>b[0]+b[1]+b[2]+b[3]);
+  if(an.sel===-2){const z=tot.findIndex(t=>t<1e-6);an.sel=z>=0?z:-1;}
+  if(an.sel===-1){let k=0;tot.forEach((t,i)=>{if(t>tot[k])k=i;});an.sel=k;}
+  const r0=rmin+(rmax-rmin)*an.pos;
+  const cur=an.sel!=null?an.sel:Math.min(N-1,Math.max(0,Math.floor((r0-rmin)/bw-1e-9)));
+  an.meta={N};
+  const d=[s1,-c1],nn=[c1,s1],T=5000/1;
+  const P=(r,t)=>[X(r*d[0]+t*nn[0]),Y(r*d[1]+t*nn[1])];
+  let g=`<rect x="0" y="0" width="720" height="290" fill="var(--sky)"/>`;
+  g+=`<polygon points="${X(0)},290 ${V.map(v=>X(v[0])+','+Y(v[1])).join(' ')} ${X(W)},290" fill="var(--ground)"/>`;
+  // look direction rays
+  for(let k=0;k<7;k++){const qx=-ytop*s1/c1*0.2+k*W/6.5,q=[qx,ytop],e=[qx+ytop/c1*s1,0];
+    g+=`<line x1="${X(q[0])}" y1="${Y(q[1])}" x2="${X(e[0])}" y2="${Y(e[1])}" stroke="var(--accent)" opacity=".18"/>`;}
+  // pixel band
+  const ra=rmin+cur*bw, rb=ra+bw, A1=P(ra,-T),A2=P(ra,T),B2=P(rb,T),B1=P(rb,-T);
+  g+=`<polygon points="${A1} ${A2} ${B2} ${B1}" fill="var(--accent)" opacity=".2"/>`;
+  g+=`<line x1="${A1[0]}" y1="${A1[1]}" x2="${A2[0]}" y2="${A2[1]}" stroke="var(--accent)" opacity=".7"/><line x1="${B1[0]}" y1="${B1[1]}" x2="${B2[0]}" y2="${B2[1]}" stroke="var(--accent)" opacity=".7"/>`;
+  // terrain runs
+  const runs=(fn)=>{const out=[];let cr=null;smp.forEach((o,i)=>{const ok=fn(o)&&(!cr||smp[i-1].seg===o.seg||true);if(ok){if(!cr){cr=[];out.push(cr);}cr.push(o);}else cr=null;});return out;};
+  const pl=(arr,stroke,w,extra='')=>arr.filter(a=>a.length>1).map(a=>`<polyline points="${a.map(o=>X(o.p[0]).toFixed(1)+','+Y(o.p[1]).toFixed(1)).join(' ')}" fill="none" stroke="${stroke}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`).join('');
+  for(let i=0;i<4;i++){
+    g+=pl(runs(o=>o.seg===i&&o.v),SEGC[i],2,'opacity=".35"');
+    g+=pl(runs(o=>o.seg===i&&o.v&&o.r<=r0),SEGC[i],4.5);}
+  g+=pl(runs(o=>!o.v),'var(--shade)',3,'stroke-dasharray="4 3"');
+  g+=pl(runs(o=>o.v&&o.b===cur),'var(--ink)',9,'opacity=".9"');
+  for(let i=0;i<4;i++) g+=pl(runs(o=>o.seg===i&&o.v&&o.b===cur),SEGC[i],5);
+  // wavefront
+  if(an.pos<0.999){const w1=P(r0,-T),w2=P(r0,T);g+=`<line x1="${w1[0]}" y1="${w1[1]}" x2="${w2[0]}" y2="${w2[1]}" stroke="var(--accent)" stroke-width="3"/>`;
+    const lp=P(r0,(ytop*0.75-r0*d[1])/nn[1]);g+=`<text class="t tb" x="${lp[0]+6}" y="${lp[1]}" style="fill:var(--accent)">波前</text>`;}
+  const lb=P((ra+rb)/2,(ytop*0.9-((ra+rb)/2)*d[1])/nn[1]);
+  g+=`<text class="t tb" x="${Math.min(690,Math.max(30,lb[0]))}" y="${Math.max(16,lb[1])}" text-anchor="middle">第 ${cur+1} 格</text>`;
+  g+=`<g transform="translate(34,24)"><rect x="-7" y="-5" width="14" height="10" rx="2" fill="var(--ink)"/><rect x="-24" y="-3" width="14" height="6" fill="var(--accent)"/><rect x="10" y="-3" width="14" height="6" fill="var(--accent)"/></g>`;
+  g+=`<text class="tm" x="64" y="28">衛星（θ = ${st.theta}°）</text>`;
+  $('#svg3').innerHTML=g;
+
+  // bars + image strip
+  const x0=115,cw=600/N,b0=140,u=24,cap=4.6;
+  let h=`<text class="t tb" x="8" y="80">每格裝了</text><text class="t tb" x="8" y="96">多少地面</text>`;
+  h+=`<line x1="${x0}" y1="${b0-u}" x2="${x0+600}" y2="${b0-u}" stroke="var(--muted)" stroke-dasharray="4 3"/>`;
+  h+=`<text class="tm" x="${x0+600}" y="${b0-u-4}" text-anchor="end">平地基準 1 倍（每格約 ${f(ref,1)} m 地面）</text>`;
+  h+=`<line x1="${x0}" y1="${b0}" x2="${x0+600}" y2="${b0}" stroke="var(--line)"/>`;
+  h+=`<rect x="${x0+cur*cw}" y="${b0-cap*u-8}" width="${cw}" height="${cap*u+60}" fill="var(--accent)" opacity=".12"/>`;
+  for(let k=0;k<N;k++){const shown=an.pos>=0.999||rmin+k*bw<r0;const x=x0+k*cw+1.5,w=cw-3;
+    if(!shown){h+=`<rect x="${x}" y="${b0-3}" width="${w}" height="3" fill="var(--line)"/>`;continue;}
+    let y=b0, over=tot[k]/ref>cap;
+    for(let i=0;i<4;i++){if(!bins[k][i])continue;let hh=bins[k][i]/ref*u;const room=y-(b0-cap*u);hh=Math.min(hh,room);if(hh<=0)continue;y-=hh;
+      h+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="${SEGC[i]}"/>`;}
+    if(over) h+=`<path d="M${x+w/2},${b0-cap*u-8} l-4,6 l8,0z" fill="var(--bad)"/>`;
+    if(tot[k]<1e-6) h+=`<text class="tm" x="${x+w/2}" y="${b0-6}" text-anchor="middle">×</text>`;}
+  h+=`<text class="t tb" x="8" y="${b0+27}">合成影像</text>`;
+  h+=`<rect x="${x0}" y="${b0+14}" width="600" height="24" fill="#0c1112"/>`;
+  for(let k=0;k<N;k++){const shown=an.pos>=0.999||rmin+k*bw<r0; if(!shown) continue;
+    const br=Math.pow(Math.min(1,tot[k]/ref/3.5),0.8); if(br>0) h+=`<rect x="${x0+k*cw}" y="${b0+14}" width="${cw+0.3}" height="24" fill="#ffffff" opacity="${br.toFixed(3)}"/>`;}
+  h+=`<rect x="${x0+cur*cw}" y="${b0+12}" width="${cw}" height="28" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  if(an.pos<0.999){const cx=x0+(r0-rmin)/(rmax-rmin)*600;h+=`<line x1="${cx}" y1="${b0-cap*u-10}" x2="${cx}" y2="${b0+40}" stroke="var(--accent)" stroke-width="2"/>`;}
+  h+=`<text class="tm" x="${x0}" y="${b0+58}">離衛星近</text><text class="tm" x="${x0+600}" y="${b0+58}" text-anchor="end">離衛星遠（斜距 →）</text>`;
+  h+=`<text class="tm" x="${x0+300}" y="${b0+58}" text-anchor="middle">越亮 = 同一格擠進越多地面</text>`;
+  $('#svg3b').innerHTML=h;
+
+  // caption
+  const c=bins[cur],t=tot[cur],ratio=t/ref, segs=[0,1,2,3].filter(i=>c[i]>0.5);
+  let msg;
+  if(t<1e-6) msg='這一格沒有收到任何回波。對應的地面被山頂擋住，落在陰影裡，影像上是一片黑。';
+  else if(c[1]>=0.8*t&&Math.abs(st.fa-st.theta)<1) msg=`坡度剛好等於入射角，視線垂直坡面，整段迎視坡 ${f(c[1],0)} m 幾乎同時把回波送回衛星，全部擠進這一格，是平地的 ${f(ratio,1)} 倍。整個坡在影像上只剩一個亮點。`;
+  else if(segs.includes(1)&&segs.some(i=>i!==1)&&c[1]>0.05*t&&c[0]+c[2]+c[3]>0.05*t) msg=`這一格同時收到${segs.map(i=>SEGN[i]).join('、')}的回波。這幾處地面離衛星一樣遠，訊號一起抵達，混在同一格分不開，這就是疊置。坡上若有位移，相位也會被其他地面的訊號污染。`;
+  else if(segs.length===1&&segs[0]===1) msg=ratio>1.15?`這一格只有迎視坡，卻裝了平地 ${f(ratio,1)} 倍的地面。影像看起來很亮，但坡上 ${f(t,0)} m 長的範圍只剩一個像元，坡頂坡腳分不出來，這就是前縮。`:`迎視坡坡度很緩，壓縮不明顯。`;
+  else if(segs.length===1&&segs[0]===2) msg=`這一格只有背視坡，只分到平地 ${f(ratio,1)} 倍的地面。坡面被拉開到更多像元，每格回波較弱，但位置分得很清楚，適合判讀位移。`;
+  else if(segs.length>1) msg=`這一格位於坡面交界，同時含有${segs.map(i=>SEGN[i]).join('與')}。`;
+  else msg=`平地，每格約裝 ${f(ref,1)} m 地面，作為比較基準。`;
+  $('#cap3').innerHTML=`<div class="k">第 ${cur+1} 格（共 ${N} 格）${an.sel==null?'　跟著波前移動':'　點下方其他格可切換'}</div>
+   <div class="n" style="color:var(--ink)">${segs.length?segs.map(i=>`<span class="swatch" style="background:${SEGC[i]}"></span>${SEGN[i]} <span class="mono">${f(c[i],1)} m</span>`).join('　'):'無回波'}　｜　合計 <span class="mono">${f(t,1)} m</span>，平地的 <span class="mono">${f(ratio,1)}</span> 倍</div>
+   <p style="margin-top:4px">${msg}</p>`;
+}
+function updPlay(){$('#play').textContent=an.playing?'❚❚ 暫停':'▶ 播放';}
+function tick(t){if(!an.playing)return;const dt=an.last?t-an.last:0;an.last=t;an.pos=Math.min(1,an.pos+dt/9000);
+  if(an.pos>=1)an.playing=false;$('#scrub').value=Math.round(an.pos*1000);draw1c();updPlay();if(an.playing)requestAnimationFrame(tick);}
+$('#play').onclick=()=>{if(an.playing){an.playing=false;updPlay();return;}if(an.pos>=0.999)an.pos=0;an.sel=null;an.playing=true;an.last=0;updPlay();requestAnimationFrame(tick);};
+$('#scrub').addEventListener('input',e=>{an.pos=+e.target.value/1000;an.playing=false;an.sel=null;updPlay();draw1c();});
+(function(){const sv=$('#svg3b');let dn=false;const pick=e=>{const b=sv.getBoundingClientRect(),x=(e.clientX-b.left)/b.width*720;const k=Math.floor((x-115)/(600/an.N));
+  if(k<0||k>=an.N)return;an.sel=k;an.playing=false;an.pos=1;$('#scrub').value=1000;updPlay();draw1c();};
+  sv.addEventListener('pointerdown',e=>{dn=true;pick(e);});sv.addEventListener('pointermove',e=>{if(dn)pick(e);});
+  ['pointerup','pointerleave','pointercancel'].forEach(t=>sv.addEventListener(t,()=>dn=false));})();
+document.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>{const p=b.dataset.p,th=st.theta;
+  if(p==='fs'){st.fa=Math.round(th*0.5);st.ba=25;}
+  if(p==='eq'){st.fa=th;st.ba=25;}
+  if(p==='lay'){st.fa=Math.min(75,th+18);st.ba=25;}
+  if(p==='sh'){st.fa=Math.round(th*0.5);st.ba=Math.min(75,90-th+18);}
+  an.sel=p==='sh'?-2:-1;an.pos=1;an.playing=false;$('#scrub').value=1000;updPlay();all();}));
+
+/* ---------- wiring ---------- */
+function syncInputs(){
+  $('#th1').value=$('#th2').value=st.theta; $('#fa').value=st.fa; $('#ba').value=st.ba; $('#asp').value=st.aspect; $('#slp').value=st.slope;
+  $('#th1o').textContent=$('#th2o').textContent=st.theta+'°'; $('#fao').textContent=st.fa+'°'; $('#bao').textContent=st.ba+'°';
+  $('#aspo').textContent=st.aspect+'°（'+dirName(st.aspect)+'向）'; $('#slpo').textContent=st.slope+'°';
+  $('#bAsc').setAttribute('aria-pressed',st.track==='asc'); $('#bDesc').setAttribute('aria-pressed',st.track==='desc');
+  $('#th3').value=st.theta;$('#fa3').value=st.fa;$('#ba3').value=st.ba;
+  $('#th3o').textContent=st.theta+'°';$('#fa3o').textContent=st.fa+'°';$('#ba3o').textContent=st.ba+'°';
+}
+function all(){syncInputs();draw1();draw1c();draw2();draw3();save();}
+[['#th3','theta'],['#fa3','fa'],['#ba3','ba'],['#th1','theta'],['#th2','theta'],['#fa','fa'],['#ba','ba'],['#asp','aspect'],['#slp','slope']].forEach(([s,k])=>$(s).addEventListener('input',e=>{st[k]=+e.target.value;all();}));
+$('#bAsc').onclick=()=>{st.track='asc';all();}; $('#bDesc').onclick=()=>{st.track='desc';all();};
+(function(){const sv=$('#dial');let drag=false;
+  const set=e=>{const b=sv.getBoundingClientRect(),x=(e.clientX-b.left)/b.width*280-140,y=(e.clientY-b.top)/b.height*280-140;
+    if(Math.hypot(x,y)<10) return; st.aspect=Math.round((Math.atan2(x,-y)/R+360)%360);all();};
+  sv.addEventListener('pointerdown',e=>{drag=true;sv.setPointerCapture(e.pointerId);set(e);});
+  sv.addEventListener('pointermove',e=>{if(drag)set(e);});
+  sv.addEventListener('pointerup',()=>drag=false); sv.addEventListener('pointercancel',()=>drag=false);})();
+$('#copy').addEventListener('click',async()=>{const t=$('#wording').textContent;
+  try{await navigator.clipboard.writeText(t);$('#copy').textContent='已複製';}
+  catch(e){const r=document.createRange();r.selectNodeContents($('#wording'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('#copy').textContent='已選取，請按複製';}
+  setTimeout(()=>$('#copy').textContent='複製文字',1800);});
+
+/* ---------- hero interferogram ---------- */
+function fringe(){
+  const c=$('#fringe'), w=c.clientWidth, h=c.clientHeight; if(!w) return;
+  const dpr=Math.min(2,window.devicePixelRatio||1), W=Math.round(w*dpr), H=Math.round(h*dpr);
+  c.width=W;c.height=H; const ctx=c.getContext('2d'), img=ctx.createImageData(W,H), D=img.data;
+  let seed=7; const rnd=()=>((seed=(seed*16807)%2147483647)/2147483647);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const X=x/W,Y=y/H, ar=w/h;
+    const dx1=(X-.3)*ar,dy1=Y-.55,dx2=(X-.72)*ar,dy2=Y-.38;
+    let ph=7*Math.exp(-(dx1*dx1+dy1*dy1)/.9)+4.5*Math.exp(-(dx2*dx2+dy2*dy2)/.25)+1.2*X;
+    const noisy=X>.86, nz=noisy?(rnd()*1.6):rnd()*.06;
+    ph=((ph+nz)%1+1)%1;
+    const hh=ph*6, i=Math.floor(hh), fpart=hh-i, v=.86, s=.62, p0=v*(1-s), q=v*(1-s*fpart), t=v*(1-s*(1-fpart));
+    const [r,g,b]=[[v,t,p0],[q,v,p0],[p0,v,t],[p0,q,v],[t,p0,v],[v,p0,q]][i%6];
+    const k=(y*W+x)*4; D[k]=r*255;D[k+1]=g*255;D[k+2]=b*255;D[k+3]=255;}
+  ctx.putImageData(img,0,0);
+  ctx.font=`${12*dpr}px "Noto Sans TC",sans-serif`; ctx.fillStyle='rgba(20,30,35,.75)';
+  ctx.textAlign='right'; ctx.fillText('右側雜訊：同調性低，無法解算',W-8*dpr,H-10*dpr);
+}
+/* ---------- 01 optical vs radar ---------- */
+const RA={t:1,playing:false,last:0};
+const RDp={sat:[370,40],pts:[[420,250],[480,250],[540,210],[600,250],[650,250]]};
+const ODp={sat:[175,44],pts:[[60,250],[110,250],[165,190],[230,250],[290,250]]};
+function drawR(){
+  const t=RA.t, L='ABCDE'; let g='';
+  g+=`<defs><clipPath id="clipR"><rect x="345" y="0" width="335" height="270"/></clipPath></defs>`;
+  g+=`<text class="t tb" x="175" y="20" text-anchor="middle">光學衛星：像照相機</text><text class="t tb" x="510" y="20" text-anchor="middle">雷達衛星：像聽回音</text>`;
+  g+=`<line x1="340" y1="8" x2="340" y2="392" stroke="var(--line)"/>`;
+  g+=`<polygon points="15,250 135,250 165,190 195,250 330,250 330,272 15,272" fill="var(--ground)" stroke="var(--groundline)"/>`;
+  g+=`<polygon points="350,250 480,250 540,210 600,250 675,250 675,272 350,272" fill="var(--ground)" stroke="var(--groundline)"/>`;
+  // optical
+  g+=`<circle cx="36" cy="44" r="10" fill="var(--fore)" opacity=".85"/>`;
+  [0,45,90,135,180,225,270,315].forEach(a=>{const c=Math.cos(a*R),s=Math.sin(a*R);g+=`<line x1="${36+c*13}" y1="${44+s*13}" x2="${36+c*18}" y2="${44+s*18}" stroke="var(--fore)"/>`;});
+  g+=`<text class="tm" x="58" y="48">太陽光</text>`;
+  const os=Math.min(1,t/0.25);
+  ODp.pts.forEach(p=>{g+=`<line x1="${ODp.sat[0]}" y1="${ODp.sat[1]}" x2="${p[0]}" y2="${p[1]}" stroke="var(--back)" opacity="${0.15+0.6*os}"/>`;});
+  g+=`<rect x="${ODp.sat[0]-12}" y="${ODp.sat[1]-10}" width="24" height="16" rx="3" fill="var(--ink)"/><text class="tm" x="${ODp.sat[0]+18}" y="${ODp.sat[1]+2}">往下看</text>`;
+  ODp.pts.forEach((p,i)=>{g+=`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="var(--fore)"/><text class="tm" x="${p[0]}" y="${p[1]-(i===2?12:9)}" text-anchor="middle">${L[i]}</text>`;});
+  g+=`<text class="tm" x="20" y="300">依「方向」排進影像（每一格是一個像素）</text><rect x="35" y="310" width="280" height="24" fill="var(--chip)" stroke="var(--line)"/>`;
+  for(let j=1;j<14;j++) g+=`<line x1="${35+j*20}" y1="310" x2="${35+j*20}" y2="334" stroke="var(--line)"/>`;
+  ODp.pts.forEach((p,i)=>{const ang=Math.atan2(p[0]-ODp.sat[0],p[1]-ODp.sat[1])/R, x0=45+(ang+32)/64*260, cI=Math.max(0,Math.min(13,Math.floor((x0-35)/20))), x=35+cI*20+10;
+    if(t>0.12) g+=`<rect x="${35+cI*20}" y="310" width="20" height="24" fill="var(--fore)" opacity=".18"/><circle cx="${x}" cy="322" r="5.5" fill="var(--fore)"/><text class="tm" x="${x}" y="352" text-anchor="middle">${L[i]}</text>`;});
+  g+=`<text class="t" x="20" y="380">${t>0.12?'所有方向同時成像，間隔均勻，山頂山腳分得開':'按「拍一張看看」'}</text>`;
+  // radar
+  const S=RDp.sat, tau=t*760, done=t>=1;
+  const ds=RDp.pts.map(p=>Math.hypot(p[0]-S[0],p[1]-S[1]));
+  const arr=i=>done||tau>=2*ds[i];
+  if(!done&&tau<430) g+=`<g clip-path="url(#clipR)"><circle cx="${S[0]}" cy="${S[1]}" r="${tau}" fill="none" stroke="var(--accent)" stroke-width="3" opacity=".8"/><circle cx="${S[0]}" cy="${S[1]}" r="${Math.max(0,tau-14)}" fill="none" stroke="var(--accent)" stroke-width="1" opacity=".35"/></g>`;
+  RDp.pts.forEach((p,i)=>{const tr=tau-ds[i];
+    if(!done&&tr>=0&&tr<40) g+=`<circle cx="${p[0]}" cy="${p[1]}" r="${8+tr/4}" fill="none" stroke="var(--fore)" opacity="${(1-tr/40).toFixed(2)}"/>`;
+    g+=`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="var(--fore)"/><text class="tm" x="${p[0]}" y="${p[1]+(i===2?-12:18)}" text-anchor="middle">${L[i]}</text>`;});
+  RDp.pts.forEach((p,i)=>{const tr=tau-ds[i];
+    if(!done&&tr>=0&&tr<ds[i]){const k=tr/ds[i],ex=p[0]+(S[0]-p[0])*k,ey=p[1]+(S[1]-p[1])*k;
+      g+=`<line x1="${p[0]}" y1="${p[1]}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="var(--fore)" stroke-width="1.2" stroke-dasharray="3 3" opacity=".55"/>`;
+      g+=`<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="5.5" fill="var(--fore)" stroke="var(--panel)" stroke-width="1.5"/><text class="tm tb" x="${(ex+9).toFixed(1)}" y="${(ey+4).toFixed(1)}" style="fill:var(--fore)">${L[i]}</text>`;}});
+  const ja=RDp.pts.map((p,i)=>tau-2*ds[i]).filter(v=>v>=0&&v<30);
+  if(!done&&ja.length) g+=`<circle cx="${S[0]}" cy="${S[1]}" r="${(14+ja[0]/2).toFixed(1)}" fill="none" stroke="var(--fore)" stroke-width="2" opacity="${(1-ja[0]/30).toFixed(2)}"/>`;
+  g+=`<rect x="${S[0]-12}" y="${S[1]-8}" width="24" height="16" rx="3" fill="var(--ink)"/><text class="tm" x="${S[0]+18}" y="${S[1]+4}">斜著往側邊看，發出脈衝</text>`;
+  g+=`<circle cx="${S[0]+24}" cy="74" r="5" fill="none" stroke="var(--accent)" stroke-width="2"/><text class="tm" x="${S[0]+34}" y="78">脈衝往外</text><circle cx="${S[0]+108}" cy="74" r="5" fill="var(--fore)"/><text class="tm" x="${S[0]+118}" y="78">回音往回</text>`;
+  const RCW=290/14;
+  g+=`<text class="tm" x="355" y="300">依「回音抵達時間」排進影像 →（每一格是一個像素）</text><rect x="370" y="310" width="290" height="24" fill="var(--chip)" stroke="var(--line)"/>`;
+  for(let j=1;j<14;j++) g+=`<line x1="${370+j*RCW}" y1="310" x2="${370+j*RCW}" y2="334" stroke="var(--line)"/>`;
+  const RX=d=>385+(d-205)/155*265, RC=d=>Math.max(0,Math.min(13,Math.floor((RX(d)-370)/RCW))), RXC=d=>370+RC(d)*RCW+RCW/2;
+  const cnt={},seen={};
+  RDp.pts.forEach((p,i)=>{if(arr(i)){const c=RC(ds[i]);cnt[c]=(cnt[c]||0)+1;}});
+  RDp.pts.forEach((p,i)=>{if(arr(i)){const c=RC(ds[i]),n=cnt[c],k=(seen[c]=(seen[c]||0)+1)-1,x=RXC(ds[i])+(n>1?(k-0.5)*7:0);
+    g+=`<rect x="${370+c*RCW}" y="310" width="${RCW}" height="24" fill="${n>1?'var(--bad)':'var(--fore)'}" opacity="${n>1?.28:.18}"/><circle cx="${x}" cy="322" r="5" fill="var(--fore)" opacity=".9"/>`;}});
+  const dn=tau/2;
+  if(!done&&dn>=200&&dn<=362){const cx=Math.min(658,Math.max(372,RX(dn)));g+=`<line x1="${cx}" y1="306" x2="${cx}" y2="338" stroke="var(--accent)" stroke-width="2.5"/><text class="tm" x="${cx}" y="364" text-anchor="middle" style="fill:var(--accent)">接收中</text>`;}
+  if(arr(0)) g+=`<text class="tm" x="${RXC(ds[0])}" y="352" text-anchor="middle">A</text>`;
+  if(arr(1)) g+=`<text class="tm" x="${RXC(ds[1])}" y="352" text-anchor="middle">${arr(2)?'B C':'B'}</text>`;
+  if(arr(3)) g+=`<text class="tm" x="${RXC(ds[3])}" y="352" text-anchor="middle">D</text>`;
+  if(arr(4)) g+=`<text class="tm" x="${RXC(ds[4])}" y="352" text-anchor="middle">E</text>`;
+  const msg=done||arr(4)?'B、C 離衛星一樣遠，回音同時到，擠在同一格':tau<ds[0]?'① 脈衝往外擴散，還沒碰到地面':!arr(0)?'② 碰到地面反射，橘點是往回飛的回音':'③ 回音一抵達衛星，就依抵達時間填進格子';
+  g+=`<text class="t" x="355" y="384">${msg}</text>`;
+  $('#svgR').innerHTML=g;
+}
+function tickR(ts){if(!RA.playing)return;const dt=RA.last?ts-RA.last:0;RA.last=ts;RA.t=Math.min(1,RA.t+dt/9000);if(RA.t>=1)RA.playing=false;drawR();if(RA.playing)requestAnimationFrame(tickR);}
+$('#fire').onclick=()=>{RA.t=0;RA.last=0;RA.playing=true;requestAnimationFrame(tickR);};
+
+/* ---------- 02 Sentinel-1 scan ---------- */
+const SA={s:-30,playing:!matchMedia('(prefers-reduced-motion: reduce)').matches,last:0,spd:0.5,track:'asc',vis:true};
+const SAT={asc:{h:[-0.2079,-0.9781],l:[0.9781,-0.2079],name:'升軌',head:'約 348°，北偏西',look:'向東看'},
+           desc:{h:[-0.2079,0.9781],l:[-0.9781,-0.2079],name:'降軌',head:'約 192°，南偏西',look:'向西看'}};
+const BL=16,S0=-240,S1=240,SW=[[-100,-33.3],[-33.3,33.3],[33.3,100]],INC=['約 29–35°','約 35–41°','約 41–46°'];
+const prj=(lon,lat)=>[20+(lon-118.3)*81.5,10+(26-lat)*89];
+const TW=[[121.54,25.30],[121.75,25.15],[122.0,25.0],[121.85,24.6],[121.65,24.0],[121.45,23.4],[121.2,22.85],[120.95,22.4],[120.85,21.9],[120.72,22.0],[120.62,22.35],[120.3,22.6],[120.12,23.0],[120.13,23.4],[120.3,23.9],[120.6,24.35],[120.9,24.8],[121.05,25.05],[121.3,25.18]];
+function drawS(){
+  const T=SAT[SA.track],C=[236,215];
+  const P=(s,a)=>[C[0]+s*T.h[0]+a*T.l[0],C[1]+s*T.h[1]+a*T.l[1]];
+  const pts=a=>a.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const quad=(s0,s1,a0,a1)=>pts([P(s0,a0),P(s1,a0),P(s1,a1),P(s0,a1)]);
+  const rel=SA.s-S0,c=Math.floor(rel/BL),ph=rel/BL-c,k=Math.min(2,Math.floor(ph*3)),f=ph*3-k,sc=S0+c*BL+BL/2;
+  let g=`<defs><clipPath id="clipS"><rect x="14" y="6" width="420" height="456"/></clipPath></defs>`;
+  g+=`<rect x="14" y="6" width="420" height="456" fill="var(--sky)"/>`;
+  g+=`<g clip-path="url(#clipS)">`;
+  for(let lon=119;lon<=123;lon++){const a=prj(lon,26),b=prj(lon,21);g+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="var(--line)"/><text class="tm mn" x="${a[0]+3}" y="456">${lon}°E</text>`;}
+  for(let lat=22;lat<=25;lat++){const a=prj(118.3,lat),b=prj(123.3,lat);g+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="var(--line)"/><text class="tm mn" x="18" y="${a[1]-3}">${lat}°N</text>`;}
+  g+=`<polygon points="${pts(TW.map(p=>prj(p[0],p[1])))}" fill="var(--ground)" stroke="var(--groundline)" stroke-width="1.2"/>`;
+  g+=`<polygon points="${quad(S0,S1,-100,100)}" fill="none" stroke="var(--accent)" stroke-dasharray="5 4" opacity=".6"/>`;
+  [-33.3,33.3].forEach(a=>{const p=P(S0,a),q=P(S1,a);g+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="var(--accent)" stroke-dasharray="2 4" opacity=".5"/>`;});
+  for(let cc=0;cc<=c;cc++){const s=S0+cc*BL+BL/2;for(let kk=0;kk<3;kk++){if(cc===c&&kk>=k)break;g+=`<polygon points="${quad(s-BL/2,s+BL/2+0.6,SW[kk][0],SW[kk][1])}" fill="var(--accent)" opacity=".17"/>`;}}
+  g+=`<polygon points="${quad(sc-BL/2,sc+BL/2,SW[k][0],SW[k][1])}" fill="var(--accent)" opacity=".38" stroke="var(--accent)"/>`;
+  const pp=sc-BL/2+BL*f, gp=Math.min(1,f*1.15), aE=SW[k][0]+(SW[k][1]-SW[k][0])*gp;
+  g+=`<polygon points="${quad(pp-2,pp+2,SW[k][0],SW[k][1])}" fill="var(--fore)" opacity=".2"/>`;
+  g+=`<polygon points="${quad(pp-2,pp+2,SW[k][0],aE)}" fill="var(--fore)"/>`;
+  {const e=P(pp,aE);g+=`<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="3.5" fill="var(--fore)"/>`;}
+  const sat=P(SA.s,-150), a0=P(pp,SW[k][0]), a1=P(pp,SW[k][1]);
+  g+=`<polygon points="${pts([sat,a0,a1])}" fill="var(--fore)" opacity=".12"/>`;
+  const g0=P(S0,-150),g1=P(S1,-150);
+  g+=`<line x1="${g0[0]}" y1="${g0[1]}" x2="${g1[0]}" y2="${g1[1]}" stroke="var(--ink)" stroke-dasharray="6 4" opacity=".55"/>`;
+  const hdg=(Math.atan2(T.h[1],T.h[0])/R).toFixed(1);
+  const satIcon=`<rect x="-6" y="-7" width="12" height="11" rx="2" fill="var(--ink)"/><rect x="-24" y="5" width="48" height="5" rx="1" fill="var(--fore)" stroke="var(--ink)" stroke-width=".8"/><path d="M24,-1 l8,0 m-4,-4 l4,4 l-4,4" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
+  g+=`<g transform="translate(${sat[0].toFixed(1)},${sat[1].toFixed(1)}) rotate(${hdg})">${satIcon}</g>`;
+  g+=`</g>`;
+  g+=`<g transform="translate(410,40)"><line x1="0" y1="18" x2="0" y2="-14" stroke="var(--ink)" stroke-width="1.5"/><path d="M0,-18 l-5,8 l10,0z" fill="var(--ink)"/><text class="t tb" x="0" y="34" text-anchor="middle">北</text></g>`;
+  g+=`<g transform="translate(330,440)"><rect x="0" y="-4" width="40" height="4" fill="var(--ink)"/><text class="tm" x="20" y="-8" text-anchor="middle">50 km</text></g>`;
+  g+=`<text class="t tb" x="24" y="26">${T.name}　飛行 ${T.head}，${T.look}</text>`;
+  g+=`<rect x="20" y="34" width="250" height="22" rx="4" fill="var(--panel)" opacity=".85"/><g transform="translate(46,44) scale(.8)"><rect x="-6" y="-7" width="12" height="11" rx="2" fill="var(--ink)"/><rect x="-24" y="5" width="48" height="5" rx="1" fill="var(--fore)" stroke="var(--ink)" stroke-width=".8"/></g><text class="tm" x="74" y="50">橘色長條：雷達天線，長邊順著飛行方向</text>`;
+  // image panel
+  const x0=470,cw=70,Ym=s=>235-s*0.88;
+  g+=`<text class="t tb" x="${x0}" y="18">影像正在組成</text>`;
+  g+=`<text class="tm" x="${x0}" y="34">↑ 飛行方向（方位）</text>`;
+  g+=`<rect x="${x0}" y="${Ym(S1)}" width="${cw*3}" height="${Ym(S0)-Ym(S1)}" fill="var(--chip)"/>`;
+  for(let cc=0;cc<=c;cc++){const s=S0+cc*BL+BL/2;for(let kk=0;kk<3;kk++){if(cc===c&&kk>=k)break;
+    g+=`<rect x="${x0+kk*cw+1}" y="${Ym(s+BL/2)}" width="${cw-2}" height="${BL*0.88-1}" fill="var(--accent)" opacity="${0.22+0.12*((cc+kk)%2)}"/>`;}}
+  g+=`<rect x="${x0+k*cw+1}" y="${Ym(sc+BL/2)}" width="${cw-2}" height="${BL*0.88-1}" fill="var(--accent)" opacity=".5" stroke="var(--accent)"/>`;
+  {const ry=Ym(sc+BL/2),rh=BL*0.88-1;for(let j=1;j<10;j++){const xx=x0+k*cw+1+(cw-2)*j/10;g+=`<line x1="${xx.toFixed(1)}" y1="${ry.toFixed(1)}" x2="${xx.toFixed(1)}" y2="${(ry+rh).toFixed(1)}" stroke="var(--panel)" stroke-width="1"/>`;}}
+  g+=`<rect x="${x0+k*cw+1}" y="${Ym(pp)-1.5}" width="${cw-2}" height="3" fill="var(--fore)" opacity=".25"/>`;
+  g+=`<rect x="${x0+k*cw+1}" y="${Ym(pp)-1.5}" width="${((cw-2)*gp).toFixed(1)}" height="3" fill="var(--fore)"/>`;
+  ['IW1','IW2','IW3'].forEach((n,i)=>{g+=`<text class="tm tb" x="${x0+i*cw+cw/2}" y="${Ym(S0)+16}" text-anchor="middle" style="${i===k?'fill:var(--accent)':''}">${n}</text>`;});
+  g+=`<text class="tm" x="${x0}" y="${Ym(S0)+34}">斜距 →（近端到遠端）</text>`;
+  $('#svgS').innerHTML=g;
+  const cards=`<div class="card"><div class="k">單一脈衝照亮範圍</div><div class="v">80 × 4 km</div><div class="n">垂直飛行方向長、沿飛行方向窄。在台灣大致是東西向的長條</div></div>
+  <div class="card"><div class="k">現在正在拍</div><div class="v">${['IW1','IW2','IW3'][k]}</div><div class="n">第 ${c+1} 輪 burst，入射角${INC[k]}。橘線在 burst 內由後往前掃</div></div>
+  <div class="card"><div class="k">整個刈幅</div><div class="v">250 km</div><div class="n">三個子刈幅輪流拍，入射角從近端約 29° 到遠端約 46°</div></div>`;
+  if($('#scards').dataset.k!==String(k)+SA.track+c){$('#scards').innerHTML=cards;$('#scards').dataset.k=String(k)+SA.track+c;}
+}
+function tickS(ts){const dt=SA.last?Math.min(100,ts-SA.last):0;SA.last=ts;
+  if(SA.playing&&SA.vis){SA.s+=dt/1000*12*SA.spd;if(SA.s>=S1-0.01)SA.s=S0;drawS();}
+  requestAnimationFrame(tickS);}
+function updS(){$('#sAsc').setAttribute('aria-pressed',SA.track==='asc');$('#sDesc').setAttribute('aria-pressed',SA.track==='desc');
+  $('#splay').textContent=SA.playing?'❚❚ 暫停':'▶ 播放';$('#sspdo').textContent=SA.spd+'×';}
+$('#sAsc').onclick=()=>{SA.track='asc';SA.s=S0+40;updS();drawS();};
+$('#sDesc').onclick=()=>{SA.track='desc';SA.s=S0+40;updS();drawS();};
+$('#splay').onclick=()=>{SA.playing=!SA.playing;updS();};
+$('#sspd').addEventListener('input',e=>{SA.spd=+e.target.value;updS();});
+try{new IntersectionObserver(es=>{SA.vis=es[0].isIntersecting;}).observe($('#svgS'));}catch(e){}
+/* ---------- 07 reading fringes ---------- */
+const FR={D:8,sign:1,coh:85,mode:'w',noise:null,nw:0,nh:0,hov:null};
+const HW=2.8, FY=0.52;
+function hue(ph){const hh=(((ph%1)+1)%1)*6,i=Math.floor(hh),fp=hh-i,v=.88,s=.62,p=v*(1-s),q=v*(1-s*fp),t=v*(1-s*(1-fp));
+  return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6].map(c=>Math.round(c*255));}
+function divc(v){const t=Math.max(-1,Math.min(1,v)),a=[44,99,173],w=[245,245,242],b=[191,53,44],e=t<0?a:b,k=Math.abs(t);return w.map((c,i)=>Math.round(c+(e[i]-c)*k));}
+const fdisp=(X,Y)=>FR.D*Math.exp(-((X-.5)**2/.045+(Y-.52)**2/.07));
+function drawF(){
+  const c=$('#fcan'),w=c.clientWidth||360,h=Math.round(w*0.8),dpr=Math.min(2,window.devicePixelRatio||1),W=Math.round(w*dpr),H=Math.round(h*dpr);
+  if(c.width!==W||c.height!==H){c.width=W;c.height=H;c.style.height=h+'px';}
+  if(!FR.noise||FR.nw!==W||FR.nh!==H){FR.noise=new Float32Array(W*H);let sd=11;for(let i=0;i<W*H;i++){sd=(sd*16807)%2147483647;FR.noise[i]=sd/2147483647-.5;}FR.nw=W;FR.nh=H;}
+  const ctx=c.getContext('2d'),img=ctx.createImageData(W,H),Dt=img.data,amp=1-FR.coh/100,sc=Math.max(FR.D,2);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const X=x/W,Y=y/H,i=y*W+x,d=fdisp(X,Y),m=Math.exp(-((X-.85)**2+(Y-.18)**2)/.025),na=amp*(0.35+1.4*m)*FR.noise[i];
+    const col=FR.mode==='w'?hue(FR.sign*d/HW+na*2.2):divc((FR.sign*d+na*8)/sc);const k=i*4;Dt[k]=col[0];Dt[k+1]=col[1];Dt[k+2]=col[2];Dt[k+3]=255;}
+  ctx.putImageData(img,0,0);
+  ctx.setLineDash([6*dpr,4*dpr]);ctx.strokeStyle='rgba(20,30,35,.75)';ctx.lineWidth=1.5*dpr;ctx.beginPath();ctx.moveTo(0,FY*H);ctx.lineTo(W,FY*H);ctx.stroke();ctx.setLineDash([]);
+  ctx.font=`${12*dpr}px "Noto Sans TC",sans-serif`;ctx.fillStyle='rgba(20,30,35,.85)';ctx.fillText('剖面線（見下圖）',8*dpr,FY*H-8*dpr);
+  ctx.fillText('四周邊緣：不動的參考區',8*dpr,H-10*dpr);
+  if(FR.hov){ctx.strokeStyle='#111';ctx.lineWidth=2*dpr;ctx.beginPath();ctx.arc(FR.hov[0]*W,FR.hov[1]*H,7*dpr,0,7);ctx.stroke();ctx.strokeStyle='#fff';ctx.lineWidth=1*dpr;ctx.stroke();}
+  // legend
+  let L='';
+  if(FR.mode==='w'){for(let i=0;i<60;i++){const cc=hue(i/60);L+=`<rect x="${20+i*4.6}" y="10" width="5" height="22" fill="rgb(${cc})"/>`;}
+    L+=`<text class="tm mn" x="20" y="48">0</text><text class="tm mn" x="158" y="48" text-anchor="middle">1.4</text><text class="tm mn" x="296" y="48" text-anchor="end">2.8 cm</text>`;
+    L+=`<text class="t" x="20" y="70">距離每增加 2.8 cm，顏色依此順序繞完一圈</text>`;}
+  else{for(let i=0;i<60;i++){const cc=divc(i/29.5-1);L+=`<rect x="${20+i*4.6}" y="10" width="5" height="22" fill="rgb(${cc})"/>`;}
+    L+=`<text class="tm mn" x="20" y="48">−${f(sc,1)}</text><text class="tm mn" x="158" y="48" text-anchor="middle">0</text><text class="tm mn" x="296" y="48" text-anchor="end">+${f(sc,1)} cm</text>`;
+    L+=`<text class="t" x="20" y="70">藍：靠近衛星　紅：遠離衛星　顏色不再重複</text>`;}
+  $('#fleg').innerHTML=L;
+  // readouts
+  const n=FR.D/HW, nf=Math.floor(n+1e-9);
+  const q=FR.coh>=70?['ok','清楚，可以數圈']:FR.coh>=40?['warn','部分區域被雜訊蓋住']:['bad','失相干，圈數無法判讀'];
+  const dir=FR.sign>0?'距離拉長，遠離衛星。例如地層下陷，或背視坡往下滑':'距離縮短，靠近衛星。例如地表隆起，或滑動以朝向衛星的水平分量為主';
+  let hv='把游標移到干涉圖上讀值';
+  if(FR.hov){const d=fdisp(FR.hov[0],FR.hov[1]);hv=`游標處：視線位移 <span class="mono">${f(d,2)} cm</span>，位在第 <span class="mono">${Math.floor(d/HW)+1}</span> 圈內（從邊緣數）`;}
+  $('#fread').innerHTML=`
+   <div class="card"><div class="k">從邊緣數到中心</div><div class="v">${f(n,1)} 圈</div><div class="n">${nf} 圈完整色環 × 2.8 cm ≈ ${f(nf*HW,1)} cm，加上不足一圈的部分，就是中心的 ${f(FR.D,1)} cm</div></div>
+   <div class="card"><div class="k">位移方向</div><div class="n" style="color:var(--ink)">${dir}</div><div class="n">切換靠近或遠離，由外往內的色序會反過來。實際判讀時以軟體圖例為準</div></div>
+   <div class="card"><div class="k">訊號品質</div><span class="chip ${q[0]}">${q[1]}</span><div class="n">${hv}</div>${FR.D>25?'<div class="n" style="color:var(--bad)">圈已經很密，實務上相鄰像元差可能超過半圈，解纏容易出錯</div>':''}</div>`;
+  // profile
+  const x0=60,x1=700,yT=24,yB=150,N=320,top=Math.max(FR.D,HW)*1.1,sg=FR.sign>0?-1:1;
+  const Yv=v=>sg>0?yB-(v/top)*(yB-yT):yT+(-v/top)*(yB-yT), yZ=sg>0?yB:yT;
+  let p=`<text class="tm" x="${x0}" y="14">地表沿視線方向的變化（cm）　往上＝靠近衛星，往下＝遠離衛星</text>`;
+  for(let k=1;k*HW<=top;k++){const yy=Yv(sg*k*HW);p+=`<line x1="${x0}" y1="${yy}" x2="${x1}" y2="${yy}" stroke="var(--line)" stroke-dasharray="4 3"/><text class="tm mn" x="${x0-6}" y="${yy+4}" text-anchor="end">${sg>0?'+':'−'}${f(k*HW,1)}</text>`;}
+  p+=`<line x1="${x0}" y1="${yZ}" x2="${x1}" y2="${yZ}" stroke="var(--muted)"/><text class="tm mn" x="${x0-6}" y="${yZ+4}" text-anchor="end">0</text>`;
+  let path='';const vals=[];for(let i=0;i<=N;i++){const X=i/N,d=fdisp(X,FY);vals.push(d);path+=(i?'L':'M')+(x0+(x1-x0)*X).toFixed(1)+','+Yv(sg*d).toFixed(1);}
+  p=`<path d="${path}L${x1},${yB+16}L${x0},${yB+16}Z" fill="var(--ground)" opacity=".75"/>`+p;
+  for(let i=1;i<=N;i++){const a=Math.floor(vals[i-1]/HW),b=Math.floor(vals[i]/HW);if(a!==b){const kk=Math.max(a,b),xx=x0+(x1-x0)*i/N,yy=Yv(sg*kk*HW);
+    p+=`<line x1="${xx}" y1="${yy}" x2="${xx}" y2="${yB+18}" stroke="var(--accent)" opacity=".55"/><circle cx="${xx}" cy="${yy}" r="3.5" fill="var(--accent)"/>`;}}
+  p+=`<path d="${path}" fill="none" stroke="var(--ink)" stroke-width="2.5"/>`;
+  for(let i=0;i<N;i++){const X=(i+.5)/N,d=fdisp(X,FY),cc=FR.mode==='w'?hue(FR.sign*d/HW):divc(FR.sign*d/sc);p+=`<rect x="${(x0+(x1-x0)*i/N).toFixed(1)}" y="${yB+18}" width="${((x1-x0)/N+0.4).toFixed(2)}" height="26" fill="rgb(${cc})"/>`;}
+  p+=`<text class="tm" x="${x0}" y="${yB+62}">${FR.mode==='w'?'下方色帶就是剖面線上的干涉圖顏色。曲線每跨過一條 2.8 cm 虛線（青點），顏色就重新輪一次':'解纏後，每一點直接對應一個位移值，不再重複'}</text>`;
+  p+=`<text class="tm" x="${x0}" y="${yB+82}">左右兩端是不動的參考區，中間是位移最大處。土黃色是地表剖面，${FR.sign>0?'遠離衛星，呈下陷的碗狀':'靠近衛星，呈隆起'}</text>`;
+  $('#fprof').innerHTML=p;
+}
+function updF(){$('#fd').value=FR.D;$('#fc').value=FR.coh;$('#fdo').textContent=FR.D+' cm';$('#fco').textContent=FR.coh+'%';
+  $('#fAway').setAttribute('aria-pressed',FR.sign>0);$('#fToward').setAttribute('aria-pressed',FR.sign<0);
+  $('#fW').setAttribute('aria-pressed',FR.mode==='w');$('#fU').setAttribute('aria-pressed',FR.mode==='u');drawF();}
+$('#fd').addEventListener('input',e=>{FR.D=+e.target.value;updF();});
+$('#fc').addEventListener('input',e=>{FR.coh=+e.target.value;updF();});
+$('#fAway').onclick=()=>{FR.sign=1;updF();};$('#fToward').onclick=()=>{FR.sign=-1;updF();};
+$('#fW').onclick=()=>{FR.mode='w';updF();};$('#fU').onclick=()=>{FR.mode='u';updF();};
+(function(){const c=$('#fcan');let raf=0;const mv=e=>{const b=c.getBoundingClientRect();FR.hov=[(e.clientX-b.left)/b.width,(e.clientY-b.top)/b.height];if(!raf)raf=requestAnimationFrame(()=>{raf=0;drawF();});};
+  c.addEventListener('pointermove',mv);c.addEventListener('pointerdown',mv);c.addEventListener('pointerleave',()=>{FR.hov=null;drawF();});})();
+let frt;window.addEventListener('resize',()=>{clearTimeout(frt);frt=setTimeout(drawF,150);});
+updF();
+/* ---------- 07a phase to colour ---------- */
+const PH={d:0.7,playing:false,last:0};
+function drawPh(){
+  const d=PH.d, lam=5.6, LP=120, X0=60, Y1=92, Y2=176, A=20, E1=X0+2*LP, ext=2*d/lam*LP, E2=E1+ext, frac=((d/2.8)%1+1)%1, ang=frac*360;
+  const wave=(x0,x1,yc)=>{let p='';for(let x=x0;x<=x1+0.01;x+=2){const xx=Math.min(x,x1);p+=(x===x0?'M':'L')+xx.toFixed(1)+','+(yc-A*Math.sin(2*Math.PI*(xx-X0)/LP)).toFixed(1);}return p;};
+  const c=hue(frac), rgb=`rgb(${c})`;
+  let g='';
+  g+=`<text class="tm" x="${X0}" y="20">兩次拍攝的回音（只畫出抵達天線前的最後一小段，前面約 3,000 萬個波長省略）</text>`;
+  [[Y1,'第一次拍攝'],[Y2,'第二次拍攝']].forEach(([y,t])=>{g+=`<text class="t tb" x="6" y="${y-34}">${t}</text><path d="M${X0-14},${y-10} l6,20 M${X0-8},${y-10} l6,20" stroke="var(--muted)" stroke-width="1.5"/>`;});
+  g+=`<path d="${wave(X0,E1,Y1)}" fill="none" stroke="var(--back)" stroke-width="2.5"/>`;
+  g+=`<path d="${wave(X0,E1,Y2)}" fill="none" stroke="var(--back)" stroke-width="2.5"/>`;
+  if(ext>0.5) g+=`<path d="${wave(E1,E2,Y2)}" fill="none" stroke="var(--fore)" stroke-width="3.5"/>`;
+  g+=`<line x1="${E1}" y1="${Y1-34}" x2="${E1}" y2="${Y2+30}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+  const ye1=Y1, ye2=Y2-A*Math.sin(2*Math.PI*(E2-X0)/LP);
+  g+=`<circle cx="${E1}" cy="${ye1}" r="6" fill="rgb(${hue(0)})" stroke="var(--ink)" stroke-width="1.5"/>`;
+  g+=`<circle cx="${E2}" cy="${ye2.toFixed(1)}" r="6" fill="${rgb}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  g+=`<text class="tm" x="${E1+10}" y="${Y1-26}">抵達天線</text>`;
+  if(ext>0.5){g+=`<path d="M${E1},${Y2+34}V${Y2+42}M${E2},${Y2+34}V${Y2+42}M${E1},${Y2+38}H${E2}" stroke="var(--fore)" stroke-width="2" fill="none"/>`;
+    g+=`<text class="t tb" x="${(E1+E2)/2}" y="${Y2+58}" text-anchor="middle" style="fill:var(--fore)">多走 2d = ${f(2*d,2)} cm</text>`;}
+  g+=`<path d="M${X0},${Y2+34}V${Y2+42}M${X0+LP},${Y2+34}V${Y2+42}M${X0},${Y2+38}H${X0+LP}" stroke="var(--muted)" stroke-width="1.5" fill="none"/><text class="tm" x="${X0+LP/2}" y="${Y2+56}" text-anchor="middle">一個波長 5.6 cm</text>`;
+  // dial
+  const CX=610, CY=134, R=66;
+  for(let k=0;k<72;k++){const a0=k*5, a1=a0+5.4, P=(a,r)=>[CX+r*Math.sin(a*R0),CY-r*Math.cos(a*R0)];const p0=P(a0,R),p1=P(a1,R),q1=P(a1,R-16),q0=P(a0,R-16);
+    g+=`<path d="M${p0[0].toFixed(1)},${p0[1].toFixed(1)}A${R},${R} 0 0 1 ${p1[0].toFixed(1)},${p1[1].toFixed(1)}L${q1[0].toFixed(1)},${q1[1].toFixed(1)}A${R-16},${R-16} 0 0 0 ${q0[0].toFixed(1)},${q0[1].toFixed(1)}Z" fill="rgb(${hue(k/72)})"/>`;}
+  g+=`<circle cx="${CX}" cy="${CY}" r="${R-16}" fill="var(--panel)"/>`;
+  g+=`<line x1="${CX}" y1="${CY}" x2="${CX}" y2="${CY-R+10}" stroke="var(--muted)" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 3"/>`;
+  const hx=CX+(R-8)*Math.sin(ang*R0), hy=CY-(R-8)*Math.cos(ang*R0);
+  g+=`<line x1="${CX}" y1="${CY}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/><circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="7" fill="${rgb}" stroke="var(--ink)" stroke-width="2"/><circle cx="${CX}" cy="${CY}" r="4" fill="var(--ink)"/>`;
+  if(ang>2){const a=Math.min(ang,359.5),r=R-26,e=[CX+r*Math.sin(a*R0),CY-r*Math.cos(a*R0)];g+=`<path d="M${CX},${CY-r}A${r},${r} 0 ${a>180?1:0} 1 ${e[0].toFixed(1)},${e[1].toFixed(1)}" fill="none" stroke="var(--fore)" stroke-width="2"/>`;}
+  g+=`<text class="t tb" x="${CX}" y="28" text-anchor="middle">相位時鐘</text>`;
+  g+=`<text class="tm" x="${CX}" y="${CY+R+18}" text-anchor="middle">虛線：第一次　實線：第二次</text>`;
+  g+=`<text class="t tb mn" x="${CX}" y="${CY+R+38}" text-anchor="middle">相位差 ${f(2*d/lam*360,0)}°（${f(2*d/lam,2)} 圈）</text>`;
+  // pixel
+  g+=`<text class="t tb" x="6" y="300">這一格像素塗成</text><rect x="118" y="284" width="26" height="26" rx="3" fill="${rgb}" stroke="var(--ink)"/>`;
+  g+=`<text class="t" x="156" y="302">下陷 ${f(d,2)} cm → 回音多走 ${f(2*d,2)} cm → 指針轉 ${f(2*d/lam,2)} 圈${d>=2.8?' → 已繞過一整圈，顏色重新開始':''}</text>`;
+  $('#svgPh').innerHTML=g;
+  $('#phd').value=d;$('#phdo').textContent=f(d,2)+' cm';
+}
+const R0=Math.PI/180;
+$('#phd').addEventListener('input',e=>{PH.d=+e.target.value;PH.playing=false;$('#phplay').textContent='▶ 慢慢下陷';drawPh();});
+function tickPh(t){if(!PH.playing)return;const dt=PH.last?t-PH.last:0;PH.last=t;PH.d=Math.min(4.2,PH.d+dt/1000*0.6);if(PH.d>=4.2){PH.playing=false;$('#phplay').textContent='▶ 慢慢下陷';}drawPh();if(PH.playing)requestAnimationFrame(tickPh);}
+$('#phplay').onclick=()=>{if(PH.playing){PH.playing=false;$('#phplay').textContent='▶ 慢慢下陷';return;}if(PH.d>=4.19)PH.d=0;PH.playing=true;PH.last=0;$('#phplay').textContent='❚❚ 暫停';requestAnimationFrame(tickPh);};
+drawPh();
+/* ---------- 09 amplitude ---------- */
+const SCT={water:{n:'平靜水面',vv:.05,vh:.02},soil:{n:'草地、農地、裸地',vv:.45,vh:.15},veg:{n:'森林',vv:.5,vh:.42},urban:{n:'建築物',vv:.9,vh:.35},floodveg:{n:'淹水的樹林',vv:.92,vh:.3},debris:{n:'粗糙土石',vv:.68,vh:.28},city:{n:'市區',vv:.85,vh:.33}};
+function tile(type,x,y,w,h){
+  const T=SCT[type], base=y+h-28, S=[x+10,y+14], P=[x+w*.52,base]; let g='';
+  g+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="var(--sky)"/>`;
+  const water=type==='water'||type==='floodveg';
+  g+=`<rect x="${x}" y="${base}" width="${w}" height="${h-(base-y)}" fill="${water?'#3b6ea8':'var(--ground)'}" opacity="${water?.55:1}"/>`;
+  if(type==='soil'){let d=`M${x},${base}`;for(let i=0;i<=w;i+=10)d+=`L${x+i},${base-(i/10%2?5:0)}`;g+=`<path d="${d}" fill="none" stroke="var(--groundline)" stroke-width="1.5"/>`;}
+  else if(type==='debris'){for(let i=0;i<9;i++)g+=`<circle cx="${x+12+i*17}" cy="${base-4-(i%3)*2}" r="${5+(i%3)*2}" fill="var(--groundline)" opacity=".8"/>`;}
+  else g+=`<line x1="${x}" y1="${base}" x2="${x+w}" y2="${base}" stroke="${water?'#2c63ad':'var(--groundline)'}" stroke-width="1.5"/>`;
+  if(type==='veg'||type==='floodveg'){[.22,.5,.78].forEach(f=>{const tx=x+w*f;g+=`<line x1="${tx}" y1="${base}" x2="${tx}" y2="${base-34}" stroke="#6b4f2a" stroke-width="3"/>`;if(type==='veg')g+=`<circle cx="${tx}" cy="${base-44}" r="17" fill="var(--flat)" opacity=".8"/>`;else g+=`<circle cx="${tx}" cy="${base-46}" r="13" fill="var(--flat)" opacity=".65"/>`;});}
+  if(type==='urban'||type==='city'){g+=`<rect x="${x+w*.66}" y="${base-56}" width="${w*.24}" height="56" fill="var(--shade)"/>`;}
+  const dbl=type==='urban'||type==='city'||type==='floodveg', tgt=(type==='veg')?[x+w*.5,base-46]:dbl?[x+w*.45,base]:P;
+  g+=`<line x1="${S[0]}" y1="${S[1]}" x2="${tgt[0]-4}" y2="${tgt[1]-4}" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arS)"/>`;
+  const thin=(a,b)=>`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="var(--fore)" stroke-width="1.2" marker-end="url(#arO)"/>`;
+  if(type==='water') g+=thin(P,[x+w-12,y+16]);
+  if(type==='soil'||type==='debris'){[[-30,-18],[0,-30],[26,-20],[34,-6]].forEach(v=>g+=thin(P,[P[0]+v[0],P[1]+v[1]]));}
+  if(type==='veg'){[[-24,-10],[20,-20],[6,22],[28,6]].forEach(v=>g+=thin(tgt,[tgt[0]+v[0],tgt[1]+v[1]]));}
+  let ret=tgt;
+  if(type==='urban'||type==='city'||type==='floodveg'){const wx=type==='floodveg'?x+w*.78-2:x+w*.66, Q=[x+w*.45,base], W=[wx,base-(wx-Q[0])*.75];g+=`<polyline points="${Q[0]},${Q[1]} ${W[0]},${W[1].toFixed(1)}" fill="none" stroke="var(--fore)" stroke-width="1.5"/>`;ret=W;}
+  const k=.82, R=[ret[0]+(S[0]+14-ret[0])*k, ret[1]+(S[1]+10-ret[1])*k];
+  g+=`<line x1="${ret[0]}" y1="${ret[1]}" x2="${R[0].toFixed(1)}" y2="${R[1].toFixed(1)}" stroke="var(--accent)" stroke-width="${(1+8*T.vv).toFixed(1)}" opacity="${T.vv<.1?.35:.85}" ${T.vv<.1?'stroke-dasharray="3 3"':''} marker-end="url(#arA)"/>`;
+  g+=`<rect x="${x+4}" y="${y+4}" width="14" height="9" rx="2" fill="var(--ink)"/>`;
+  return g;
+}
+const MK=`<defs><marker id="arS" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9z" fill="context-stroke"/></marker><marker id="arO" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9z" fill="context-stroke"/></marker><marker id="arA" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="3" markerHeight="3" orient="auto"><path d="M1 1L9 5L1 9z" fill="context-stroke"/></marker></defs>`;
+const sw=(v,x,y,l)=>{const c=Math.round(20+v*225);return `<rect x="${x}" y="${y}" width="26" height="16" rx="2" fill="rgb(${c},${c},${c})" stroke="var(--line)"/><text class="tm" x="${x+30}" y="${y+12}">${l}</text>`;};
+(function(){let g=MK;[['water','鏡面反射，幾乎沒有回波'],['soil','往各方向散射'],['veg','枝葉間多次散射'],['urban','二次反射，非常亮']].forEach(([t,d],i)=>{const x=6+i*179;g+=tile(t,x,6,168,140);g+=`<text class="t tb" x="${x}" y="164">${SCT[t].n}</text><text class="tm" x="${x}" y="180">${d}</text>`+sw(SCT[t].vv,x,190,'VV')+sw(SCT[t].vv*0+SCT[t].vh,x+70,190,'VH');});$('#svgSc').innerHTML=g;})();
+const EV={flood:['soil','water','農地被淹沒後變成鏡面，VV、VH 都大幅變暗。淹水判釋主要就是找事件後突然變暗的區域。'],
+  floodveg:['veg','floodveg','樹林或市區淹水後，水面與樹幹、牆面形成二次反射，VV 反而變亮。只找變暗的區域會漏掉這類淹水。'],
+  slide:['veg','soil','森林被沖掉露出裸地，枝葉間的多次散射消失，VH 明顯變暗。VV 的變化則看裸地粗糙度與坡向，可能變亮也可能變暗。'],
+  debris:['soil','debris','崩積土石或河道堆積的表面粗糙，往各方向散射，回波變亮。配合同調性下降，可以圈出地表被擾動的範圍。']};
+let evK='flood';
+function drawEv(){const [a,b,txt]=EV[evK];let g=MK;g+=tile(a,10,8,190,150)+`<text class="t tb" x="10" y="180">事件前：${SCT[a].n}</text>`;
+  g+=`<path d="M214,83 H246" stroke="var(--ink)" stroke-width="2" marker-end="url(#arS)"/>`;
+  g+=tile(b,256,8,190,150)+`<text class="t tb" x="256" y="180">事件後：${SCT[b].n}</text>`;
+  const row=(lbl,v0,v1,y)=>{const d=v1-v0, ar=Math.abs(d)<.05?'≈ 持平':d>0?'▲ 變亮':'▼ 變暗', col=Math.abs(d)<.05?'var(--muted)':d>0?'var(--accent)':'var(--bad)';
+    return `<text class="t tb" x="470" y="${y+12}">${lbl}</text>`+sw(v0,500,y,'')+`<text class="tm" x="534" y="${y+12}">→</text>`+sw(v1,550,y,'')+`<text class="t tb" x="588" y="${y+12}" style="fill:${col}">${ar}</text>`;};
+  g+=`<text class="tm" x="470" y="30">影像亮度變化</text>`+row('VV',SCT[a].vv,SCT[b].vv,46)+row('VH',SCT[a].vh,SCT[b].vh,80);
+  $('#svgEv').innerHTML=g;$('#evNote').textContent=txt;
+  document.querySelectorAll('#scSeg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.s===evK));}
+document.querySelectorAll('#scSeg button').forEach(x=>x.addEventListener('click',()=>{evK=x.dataset.s;drawEv();}));
+drawEv();
+/* ---------- 10 earthquake ---------- */
+const EQ={s:200,str:60,sense:1,track:'asc',mode:'w',arr:true,hov:null,noise:null,nw:0,nh:0,raf:0};
+const EQL=20, EQX=60, EQY=42;
+function eqDisp(x,y){const a0=EQ.str*R0,t=[Math.sin(a0),Math.cos(a0)],n=[Math.cos(a0),-Math.sin(a0)];
+  const a=x*t[0]+y*t[1], b=x*n[0]+y*n[1];
+  let dt=Math.atan2(b,a-EQL)-Math.atan2(b,a+EQL); if(dt>Math.PI)dt-=2*Math.PI; if(dt<-Math.PI)dt+=2*Math.PI;
+  const r1=Math.hypot(a-EQL,b)+.5, r2=Math.hypot(a+EQL,b)+.5;
+  const ds=Math.hypot(Math.max(0,Math.abs(a)-EQL),b), tp=1/(1+(ds/10)**2);
+  const ua=-EQ.sense*EQ.s/(2*Math.PI)*dt*tp, ub=-EQ.sense*EQ.s/(2*Math.PI)*0.2*Math.log(r1/r2)*tp;
+  return {e:ua*t[0]+ub*n[0], n:ua*t[1]+ub*n[1], a, b};}
+function eqLos(d){const L=losV(39,phisOf(EQ.track));return -(d.e*L[0]+d.n*L[1]);}
+function drawEq(){
+  const c=$('#eqcan'),w=c.clientWidth||400,h=Math.round(w*.7),dpr=Math.min(2,window.devicePixelRatio||1),W=Math.round(w*dpr),H=Math.round(h*dpr);
+  if(c.width!==W||c.height!==H){c.width=W;c.height=H;c.style.height=h+'px';}
+  if(!EQ.noise||EQ.nw!==W||EQ.nh!==H){EQ.noise=new Float32Array(W*H);let sd=7;for(let i=0;i<W*H;i++){sd=(sd*16807)%2147483647;EQ.noise[i]=sd/2147483647-.5;}EQ.nw=W;EQ.nh=H;}
+  const ctx=c.getContext('2d'),img=ctx.createImageData(W,H),D=img.data;
+  const kx=2*EQX/W, ky=2*EQY/H; let mx=0,mn=0;
+  const L=losV(39,phisOf(EQ.track));
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const x=-EQX+i*kx,y=EQY-j*ky,d=eqDisp(x,y),v=-(d.e*L[0]+d.n*L[1]);
+    if(v>mx)mx=v;if(v<mn)mn=v;
+    const near=Math.abs(d.b)<1.6&&Math.abs(d.a)<EQL+1.5, nz=EQ.noise[j*W+i]*(near?6:0.15);
+    const col=EQ.mode==='w'?hue(v/2.8+nz):divc((v+nz*10)/Math.max(20,EQ.s*0.35));const k=(j*W+i)*4;D[k]=col[0];D[k+1]=col[1];D[k+2]=col[2];D[k+3]=255;}
+  ctx.putImageData(img,0,0);
+  const P=(x,y)=>[(x+EQX)/kx,(EQY-y)/ky];
+  const a0=EQ.str*R0,t=[Math.sin(a0),Math.cos(a0)],n=[Math.cos(a0),-Math.sin(a0)];
+  const arrow=(x0,y0,dx,dy,col,lw)=>{const p=P(x0,y0),q=P(x0+dx,y0+dy),an=Math.atan2(q[1]-p[1],q[0]-p[0]),hl=Math.min(9*dpr,Math.hypot(q[0]-p[0],q[1]-p[1])*.6);
+    ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(q[0],q[1]);ctx.lineTo(q[0]-hl*Math.cos(an-.45),q[1]-hl*Math.sin(an-.45));ctx.lineTo(q[0]-hl*Math.cos(an+.45),q[1]-hl*Math.sin(an+.45));ctx.closePath();ctx.fill();};
+  if(EQ.arr){const sc=14/Math.max(60,EQ.s*0.5);for(let x=-54;x<=54;x+=9)for(let y=-36;y<=36;y+=9){const d=eqDisp(x,y);if(Math.abs(d.b)<2.5&&Math.abs(d.a)<EQL+2)continue;const m=Math.hypot(d.e,d.n);if(m<EQ.s*0.01)continue;
+    arrow(x,y,d.e*sc,d.n*sc,'rgba(15,22,26,.85)',1.6*dpr);}}
+  const f1=P(-EQL*t[0],-EQL*t[1]),f2=P(EQL*t[0],EQL*t[1]);
+  ctx.strokeStyle='#fff';ctx.lineWidth=7*dpr;ctx.beginPath();ctx.moveTo(f1[0],f1[1]);ctx.lineTo(f2[0],f2[1]);ctx.stroke();
+  ctx.strokeStyle='#c0261c';ctx.lineWidth=4*dpr;ctx.stroke();
+  const off=5, len=-12*EQ.sense;
+  arrow(n[0]*off-t[0]*len/2*1, n[1]*off-t[1]*len/2, t[0]*len*-1*-1, t[1]*len, '#c0261c', 3*dpr);
+  arrow(-n[0]*off+t[0]*len/2, -n[1]*off+t[1]*len/2, -t[0]*len, -t[1]*len, '#c0261c', 3*dpr);
+  ctx.font=`${12*dpr}px "Noto Sans TC",sans-serif`;
+  const lp=P(EQL*t[0]+n[0]*3,EQL*t[1]+n[1]*3);ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(lp[0]-2*dpr,lp[1]-13*dpr,44*dpr,17*dpr);ctx.fillStyle='#c0261c';ctx.fillText('斷層',lp[0]+2*dpr,lp[1]);
+  // inset: flight & look
+  const T=SAT[EQ.track], bx=10*dpr, by=10*dpr, bw=120*dpr, bh=64*dpr;
+  ctx.fillStyle='rgba(255,255,255,.88)';ctx.fillRect(bx,by,bw,bh);ctx.fillStyle='#15212a';
+  ctx.fillText(`${EQ.track==='asc'?'升軌':'降軌'}`,bx+6*dpr,by+16*dpr);
+  const cx=bx+40*dpr, cy=by+40*dpr, hd=TR[EQ.track].head*R0, lk=(TR[EQ.track].head+90)*R0;
+  const ar2=(ang,l,col,txt,tx)=>{const q=[cx+Math.sin(ang)*l,cy-Math.cos(ang)*l];ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2.5*dpr;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(q[0],q[1]);ctx.stroke();
+    ctx.beginPath();ctx.arc(q[0],q[1],3*dpr,0,7);ctx.fill();ctx.fillText(txt,bx+tx,by+(txt==='飛行'?32:52)*dpr);};
+  ar2(hd,18*dpr,'#15212a','飛行',72*dpr);ar2(lk,18*dpr,'#0a7680','視線',72*dpr);
+  // north + scale
+  ctx.fillStyle='#15212a';ctx.fillText('N ↑',W-34*dpr,18*dpr);
+  const sb=P(EQX-24,-EQY+4),sb2=P(EQX-4,-EQY+4);ctx.strokeStyle='#15212a';ctx.lineWidth=3*dpr;ctx.beginPath();ctx.moveTo(sb[0],sb[1]);ctx.lineTo(sb2[0],sb2[1]);ctx.stroke();ctx.fillText('20 km',sb[0],sb[1]-6*dpr);
+  if(EQ.hov){const q=P(EQ.hov[0],EQ.hov[1]);ctx.strokeStyle='#111';ctx.lineWidth=2*dpr;ctx.beginPath();ctx.arc(q[0],q[1],7*dpr,0,7);ctx.stroke();}
+  // legend + cards
+  let Lg='';
+  if(EQ.mode==='w'){for(let i=0;i<60;i++)Lg+=`<rect x="${20+i*4.6}" y="10" width="5" height="22" fill="rgb(${hue(i/60)})"/>`;Lg+=`<text class="tm mn" x="20" y="48">0</text><text class="tm mn" x="296" y="48" text-anchor="end">2.8 cm</text><text class="t" x="20" y="70">遠離衛星每多 2.8 cm，顏色依此順序繞一圈</text>`;}
+  else{const m=Math.max(20,EQ.s*0.35);for(let i=0;i<60;i++)Lg+=`<rect x="${20+i*4.6}" y="10" width="5" height="22" fill="rgb(${divc(i/29.5-1)})"/>`;Lg+=`<text class="tm mn" x="20" y="48">−${f(m,0)}</text><text class="tm mn" x="158" y="48" text-anchor="middle">0</text><text class="tm mn" x="296" y="48" text-anchor="end">+${f(m,0)} cm</text><text class="t" x="20" y="70">藍：靠近衛星　紅：遠離衛星</text>`;}
+  $('#eqleg').innerHTML=Lg;
+  const sens=Math.abs(t[0]*L[0]+t[1]*L[1]);
+  let hv='把游標移到圖上，讀取該點的移動量';
+  if(EQ.hov){const d=eqDisp(EQ.hov[0],EQ.hov[1]),v=eqLos(d);hv=`游標處：往東 <span class="mono">${f(d.e,1)}</span> cm、往北 <span class="mono">${f(d.n,1)}</span> cm，視線方向 <span class="mono">${f(Math.abs(v),1)}</span> cm ${v>=0?'遠離':'靠近'}衛星`;}
+  $('#eqread').innerHTML=`
+   <div class="card"><div class="k">斷層兩側的最大視線位移</div><div class="n" style="color:var(--ink)">遠離衛星 <span class="mono">${f(mx,0)} cm</span>，約 ${f(mx/2.8,0)} 圈</div><div class="n" style="color:var(--ink)">靠近衛星 <span class="mono">${f(-mn,0)} cm</span>，約 ${f(-mn/2.8,0)} 圈</div><div class="n">實際錯動 ${f(EQ.s/100,1)} m，視線只看到其中一部分</div></div>
+   <div class="card"><div class="k">斷層走向與視線的關係</div><span class="chip ${sens>.45?'good':sens>.2?'warn':'bad'}">${sens>.45?'容易看見':sens>.2?'部分可見':'幾乎看不到'}</span><div class="n">沿斷層方向的錯動，投影到視線約剩 ${f(sens*100,0)}%</div></div>
+   <div class="card"><div class="k">讀值</div><div class="n" style="color:var(--ink)">${hv}</div></div>`;
+}
+function eqQ(){if(!EQ.raf)EQ.raf=requestAnimationFrame(()=>{EQ.raf=0;drawEq();});}
+function eqUI(){$('#eqs').value=EQ.s;$('#eqso').textContent=f(EQ.s/100,1)+' m';$('#eqa').value=EQ.str;$('#eqao').textContent=EQ.str+'°';
+  $('#eqR').setAttribute('aria-pressed',EQ.sense>0);$('#eqL').setAttribute('aria-pressed',EQ.sense<0);
+  $('#eqAsc').setAttribute('aria-pressed',EQ.track==='asc');$('#eqDesc').setAttribute('aria-pressed',EQ.track==='desc');
+  $('#eqW').setAttribute('aria-pressed',EQ.mode==='w');$('#eqU').setAttribute('aria-pressed',EQ.mode==='u');$('#eqArr').setAttribute('aria-pressed',EQ.arr);eqQ();}
+$('#eqs').addEventListener('input',e=>{EQ.s=+e.target.value;eqUI();});
+$('#eqa').addEventListener('input',e=>{EQ.str=+e.target.value;eqUI();});
+$('#eqR').onclick=()=>{EQ.sense=1;eqUI();};$('#eqL').onclick=()=>{EQ.sense=-1;eqUI();};
+$('#eqAsc').onclick=()=>{EQ.track='asc';eqUI();};$('#eqDesc').onclick=()=>{EQ.track='desc';eqUI();};
+$('#eqW').onclick=()=>{EQ.mode='w';eqUI();};$('#eqU').onclick=()=>{EQ.mode='u';eqUI();};$('#eqArr').onclick=()=>{EQ.arr=!EQ.arr;eqUI();};
+(function(){const c=$('#eqcan');const mv=e=>{const b=c.getBoundingClientRect();EQ.hov=[-EQX+(e.clientX-b.left)/b.width*2*EQX,EQY-(e.clientY-b.top)/b.height*2*EQY];eqQ();};
+  c.addEventListener('pointermove',mv);c.addEventListener('pointerdown',mv);c.addEventListener('pointerleave',()=>{EQ.hov=null;eqQ();});})();
+let eqt;window.addEventListener('resize',()=>{clearTimeout(eqt);eqt=setTimeout(drawEq,150);});
+eqUI();
+/* ---------- 02 pulse timing animation ---------- */
+const PU={t:0,playing:!matchMedia('(prefers-reduced-motion: reduce)').matches,spd:1,last:0,vis:true};
+const PRI=0.6, RT0=5.55, RT1=5.85, TMAX=7.15, NP=12;
+const PUC=n=>n===1?'var(--fore)':n===2?'var(--accent)':n===3?'var(--back)':'var(--shade)';
+function drawPu(){
+  const t=PU.t; let g='';
+  // space panel
+  const SX=70, GX=650, Ly1=78, Ly2=128, km=d=>SX+(d/850)*(GX-SX), oneway=RT0/2; // ms
+  g+=`<text class="t tb" x="10" y="20">空間：脈衝與回音在路上</text>`;
+  g+=`<text class="t mn" x="710" y="20" text-anchor="end">t = ${t.toFixed(2)} 毫秒</text>`;
+  g+=`<rect x="${GX}" y="44" width="16" height="104" fill="var(--ground)" stroke="var(--groundline)"/><text class="tm" x="${GX+8}" y="164" text-anchor="middle">地面</text>`;
+  g+=`<g transform="translate(${SX-30},102)"><rect x="-8" y="-6" width="16" height="12" rx="2" fill="var(--ink)"/><rect x="-22" y="-3" width="12" height="6" fill="var(--accent)"/><rect x="10" y="-3" width="12" height="6" fill="var(--accent)"/></g><text class="tm" x="${SX-30}" y="164" text-anchor="middle">衛星</text>`;
+  g+=`<line x1="${SX}" y1="${Ly1}" x2="${GX}" y2="${Ly1}" stroke="var(--line)"/><line x1="${SX}" y1="${Ly2}" x2="${GX}" y2="${Ly2}" stroke="var(--line)"/>`;
+  g+=`<text class="tm" x="${SX}" y="${Ly1-10}">去程 →</text><text class="tm" x="${SX}" y="${Ly2+18}">← 回程（回音）</text>`;
+  [0,425,850].forEach(d=>g+=`<text class="tm mn" x="${d===850?km(d)-4:km(d)}" y="62" text-anchor="${d===850?'end':'middle'}">${d} km</text>`);
+  let inflight=0;
+  for(let n=1;n<=NP;n++){const t0=(n-1)*PRI, dt=t-t0; if(dt<0) continue;
+    if(dt<RT1) inflight++;
+    if(dt<oneway){const x=km(850*dt/oneway);g+=`<circle cx="${x.toFixed(1)}" cy="${Ly1}" r="${n<=3?6:4.5}" fill="${PUC(n)}"/><text class="tm" x="${x.toFixed(1)}" y="${Ly1-10}" text-anchor="middle">${n}</text>`;}
+    else if(dt<RT1){const back=dt-oneway, head=850-850*back/oneway, tail=Math.min(850,head+45);
+      const hx=km(Math.max(0,head)), tx=km(Math.max(0,tail));
+      if(tail>0) g+=`<rect x="${hx.toFixed(1)}" y="${Ly2-5}" width="${Math.max(2,tx-hx).toFixed(1)}" height="10" rx="3" fill="${PUC(n)}"/><text class="tm" x="${((hx+tx)/2).toFixed(1)}" y="${Ly2-10}" text-anchor="middle">${n}</text>`;}
+  }
+  g+=`<rect x="265" y="8" width="190" height="22" rx="4" fill="var(--chip)"/><text class="t tb" x="360" y="24" text-anchor="middle">空中同時有 ${inflight} 個脈衝</text>`;
+  // timeline
+  const X0=80, X1=708, tx=v=>X0+(v/TMAX)*(X1-X0), Ty=212, Ry=290;
+  g+=`<text class="t tb" x="10" y="${Ty+4}">發射</text><text class="t tb" x="10" y="${Ry+4}">接收</text>`;
+  g+=`<line x1="${X0}" y1="${Ty}" x2="${X1}" y2="${Ty}" stroke="var(--line)"/><line x1="${X0}" y1="${Ry}" x2="${X1}" y2="${Ry}" stroke="var(--line)"/>`;
+  for(let k=0;k<=7;k++) g+=`<text class="tm mn" x="${tx(k)}" y="${Ry+18}" text-anchor="middle">${k}</text>`;
+  g+=`<text class="tm" x="${X1}" y="${Ry+34}" text-anchor="end">毫秒（10⁻³ 秒）</text>`;
+  for(let n=1;n<=NP;n++){const t0=(n-1)*PRI; if(t0>t) break; const x=tx(t0);
+    g+=`<line x1="${x}" y1="${Ty-20}" x2="${x}" y2="${Ty}" stroke="${PUC(n)}" stroke-width="${n<=3?3:2}"/><text class="tm mn" x="${x}" y="${Ty-24}" text-anchor="middle" style="${n>=10?'font-weight:700;fill:var(--ink)':''}">${n}</text>`;
+    const w0=t0+RT0, w1=Math.min(t, t0+RT1);
+    if(t>=w0){g+=`<rect x="${tx(w0)}" y="${Ry-14}" width="${Math.max(1,tx(w1)-tx(w0))}" height="14" rx="2" fill="${PUC(n)}"/>`;
+      if(t>=t0+RT1) g+=`<text class="tm" x="${(tx(w0)+tx(t0+RT1))/2}" y="${Ry-18}" text-anchor="middle">${n}</text>`;
+      if(n<=2&&t>=t0+RT1){const xa=tx(t0), xb=tx(t0+RT0); g+=`<path d="M${xa},${Ty+3} C${xa+60},${Ty+40} ${xb-60},${Ry-50} ${xb},${Ry-16}" fill="none" stroke="${PUC(n)}" stroke-width="1.3" stroke-dasharray="4 3"/>`;}}
+  }
+  const cx=tx(t); g+=`<line x1="${cx}" y1="${Ty-40}" x2="${cx}" y2="${Ry+4}" stroke="var(--ink)" stroke-width="1.5" opacity=".6"/>`;
+  // status
+  let msg='';
+  const last=Math.floor(t/PRI+1e-9)+1;
+  const rx=[...Array(NP)].map((_,i)=>i+1).find(n=>{const t0=(n-1)*PRI;return t>=t0+RT0&&t<t0+RT1;});
+  if(rx) msg=`正在接收第 ${rx} 次脈衝的回音，落在第 ${rx+9} 與第 ${rx+10} 次發射之間的空檔`;
+  else if(t<RT0) msg=`已發射 ${Math.min(last,NP)} 次，第 1 次的回音還在路上，要等到約 5.55 毫秒才會回到衛星`;
+  else msg=`空檔：等待下一段回音，並準備第 ${Math.min(last+1,13)} 次發射`;
+  g+=`<rect x="0" y="336" width="720" height="30" rx="6" fill="var(--chip)"/><text class="t tb" x="12" y="356">${msg}</text>`;
+  $('#svgPu').innerHTML=g; $('#puT').value=t; $('#puTo').textContent=t.toFixed(2)+' 毫秒';
+}
+function tickPu(ts){const dt=PU.last?Math.min(100,ts-PU.last):0;PU.last=ts;
+  if(PU.playing&&PU.vis){PU.t+=dt/1000*0.5*PU.spd;if(PU.t>TMAX+0.6)PU.t=0;if(PU.t<=TMAX)drawPu();}
+  requestAnimationFrame(tickPu);}
+function puUI(){$('#puPlay').textContent=PU.playing?'❚❚ 暫停':'▶ 播放';document.querySelectorAll('[data-pv]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.pv===PU.spd));}
+$('#puPlay').onclick=()=>{PU.playing=!PU.playing;if(PU.playing&&PU.t>=TMAX)PU.t=0;puUI();};
+document.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>{PU.spd=+b.dataset.pv;puUI();});
+$('#puT').addEventListener('input',e=>{PU.t=+e.target.value;PU.playing=false;puUI();drawPu();});
+try{new IntersectionObserver(es=>{PU.vis=es[0].isIntersecting;}).observe($('#svgPu'));}catch(e){}
+puUI();drawPu();requestAnimationFrame(tickPu);
+
+drawR(); updS(); drawS(); requestAnimationFrame(tickS);
+
+all(); fringe();
+let rt; window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fringe,150);});
+if(document.fonts) document.fonts.ready.then(fringe);
+</script>
+
+</body>
+</html>
